@@ -13,6 +13,7 @@ public class BadVariableNamesSample {
         int intCount = 0;
         List<String> waybillList = List.of();
         Map<String, String> valueByWaybill = Map.of();
+        Map<String, String> shipmentStatusMappingByRawStatus = Map.of();
     }
 
     private static final String defaultComparator = "broken";

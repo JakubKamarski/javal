@@ -63,3 +63,13 @@ def test_value_by_key_variable_is_allowed(analyzer):
         f for f in findings if f.check == "java-naming-variable-collection-type" and "valueByWaybill" in f.summary
     ]
     assert collection_findings == []
+
+
+def test_domain_mapping_word_does_not_embed_collection_type(analyzer):
+    findings = analyzer.analyze_file(BAD_VARIABLES)
+    collection_findings = [
+        f
+        for f in findings
+        if f.check == "java-naming-variable-collection-type" and "shipmentStatusMappingByRawStatus" in f.summary
+    ]
+    assert collection_findings == []

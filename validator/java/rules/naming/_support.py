@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 ALLOWED_METHOD_PREFIXES = (
     "build",
     "get",
@@ -47,6 +49,16 @@ BARE_PARTICIPLE_PREFIXES = ("distinct", "sorted", "grouped", "filtered")
 COLLECTION_TYPE_TOKENS = ("List", "Set", "Map")
 
 NAMING_SUGGESTION = "Rename the symbol to follow agents/rule-java-naming.md."
+
+_CAMEL_CASE_TOKEN_SPLIT = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+
+
+def embedded_collection_type_token(name: str) -> str | None:
+    tokens = _CAMEL_CASE_TOKEN_SPLIT.split(name)
+    for token in COLLECTION_TYPE_TOKENS:
+        if token in tokens:
+            return token
+    return None
 
 
 def starts_with_allowed_verb(name: str) -> bool:
