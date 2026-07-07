@@ -24,7 +24,6 @@ if [[ ! -f "${TARGET_SCRIPT}" ]]; then
 fi
 
 mkdir -p "${BIN_DIR}"
-chmod +x "${TARGET_SCRIPT}"
 
 install_python_deps() {
   local python_cmd="$1"
