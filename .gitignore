@@ -44,4 +44,4 @@ htmlcov/
 .hypothesis/
 
 # Tooling
-code-validator/.last-run/
+.last-run/
