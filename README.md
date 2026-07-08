@@ -104,6 +104,8 @@ From those commits it collects **added and modified line numbers** in `.java` fi
 
 Lines untouched by the task are ignored, even if they violate a rule.
 
+**Exception:** `java-testing-duplicate-it-and-test` scans the whole repository for `*Test` + `*IT` pairs. If a task adds an IT file and a matching unit test already exists from an earlier task (or vice versa), the duplication is reported.
+
 ## Output
 
 ### Log (default)
@@ -195,9 +197,11 @@ Each rule is a dedicated `JavaRule` class:
 | `java-naming-variable-collection-type` | `List` / `Set` / `Map` embedded in variable name |
 | `java-naming-variable-hungarian` | Hungarian notation (`strName`, `intCount`, …) |
 | `java-naming-constant-upper-snake` | Constants must use `UPPER_SNAKE_CASE` |
+| `java-testing-duplicate-it-and-test` | Same subject has both `*Test` and `*IT` files in the repo — merge into the IT file (global scan; not limited to task-changed files) |
 | `liquibase-changeset-author` | ChangeSet `author` must match local `git config user.name` (task-introduced changeSets only — opening tag line in task diff) |
 
 Naming rules follow `agents/rule-java-naming.md` from the workspace rules repo.
+Testing structure rules follow `agents/rule-testing.md` from the workspace rules repo.
 
 ## Development
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from validator.java.analyzer import JavaAnalyzer, analyze_java_tree
-from validator.java.rules.registry import default_java_rules
+from validator.java.rules.registry import default_java_rules, default_tree_java_rules
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "java"
 
@@ -15,6 +15,9 @@ def test_default_registry_exposes_one_class_per_rule():
     assert len(check_ids) == len(set(check_ids))
     assert "unused-imports" in check_ids
     assert "java-naming-method-verb-prefix" in check_ids
+    assert "java-testing-duplicate-it-and-test" in [
+        rule.check_id for rule in default_tree_java_rules()
+    ]
 
 
 def test_analyzer_runs_all_rules_on_fixture_tree():

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 
+from validator.git_scope import TaskScope
 from validator.java.context import JavaFileContext
 from validator.report import Finding, Severity
 
@@ -36,3 +38,19 @@ class JavaRule(ABC):
     @abstractmethod
     def apply(self, context: JavaFileContext) -> list[RuleViolation]:
         """Inspect one Java file and return zero or more violations."""
+
+
+class TreeJavaRule(ABC):
+    @property
+    @abstractmethod
+    def check_id(self) -> str:
+        """Stable identifier used in validation reports."""
+
+    @abstractmethod
+    def apply_tree(
+        self,
+        java_files: list[Path],
+        scope: TaskScope | None = None,
+    ) -> list[Finding]:
+        """Inspect the Java tree and return zero or more findings."""
+

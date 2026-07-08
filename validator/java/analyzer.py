@@ -4,20 +4,29 @@ from pathlib import Path
 
 from validator.git_scope import TaskScope
 from validator.java.context import JavaFileContext
-from validator.java.rules.base import JavaRule
-from validator.java.rules.registry import default_java_rules
+from validator.java.rules.base import JavaRule, TreeJavaRule
+from validator.java.rules.registry import default_java_rules, default_tree_java_rules
 from validator.report import Finding, Report
 
 SKIP_DIRS = {".git", "target", "build", "out", ".idea", "node_modules"}
 
 
 class JavaAnalyzer:
-    def __init__(self, rules: list[JavaRule] | None = None) -> None:
+    def __init__(
+        self,
+        rules: list[JavaRule] | None = None,
+        tree_rules: list[TreeJavaRule] | None = None,
+    ) -> None:
         self._rules = rules if rules is not None else default_java_rules()
+        self._tree_rules = tree_rules if tree_rules is not None else default_tree_java_rules()
 
     @property
     def rules(self) -> list[JavaRule]:
         return list(self._rules)
+
+    @property
+    def tree_rules(self) -> list[TreeJavaRule]:
+        return list(self._tree_rules)
 
     def analyze_source(self, path: str, source: str) -> list[Finding]:
         context = JavaFileContext.from_source(path, source)
@@ -34,6 +43,8 @@ class JavaAnalyzer:
         )
         for rule in self._rules:
             report.add_check(rule.check_id)
+        for rule in self._tree_rules:
+            report.add_check(rule.check_id)
 
         if scope is not None:
             return self._analyze_task_scope(target, scope, report)
@@ -46,6 +57,8 @@ class JavaAnalyzer:
         for file_path in java_files:
             for finding in self.analyze_file(file_path):
                 report.add_finding(finding)
+
+        self._apply_tree_rules(java_files, report)
 
         if not report.invalid_findings:
             report.add_pass(
@@ -83,6 +96,9 @@ class JavaAnalyzer:
                 if finding.line in allowed_lines:
                     report.add_finding(finding)
 
+        all_java_files = discover_java_files(target)
+        self._apply_tree_rules(all_java_files, report, scope=scope)
+
         if not report.invalid_findings:
             report.add_pass(
                 "java-analysis",
@@ -102,6 +118,16 @@ class JavaAnalyzer:
                 finding = violation.to_finding(rule.check_id, absolute_path)
                 findings.append(finding)
         return findings
+
+    def _apply_tree_rules(
+        self,
+        java_files: list[Path],
+        report: Report,
+        scope: TaskScope | None = None,
+    ) -> None:
+        for rule in self._tree_rules:
+            for finding in rule.apply_tree(java_files, scope=scope):
+                report.add_finding(finding)
 
 
 def discover_java_files(root: Path) -> list[Path]:
