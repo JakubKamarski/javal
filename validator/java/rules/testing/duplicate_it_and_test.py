@@ -4,6 +4,7 @@ from pathlib import Path
 
 from validator.java.rules.base import TreeJavaRule
 from validator.java.rules.testing._support import (
+    DUPLICATE_IT_AND_TEST_SUGGESTION_TEMPLATE,
     integration_test_base_name,
     unit_test_base_name,
 )
@@ -50,13 +51,14 @@ class DuplicateItAndTestRule(TreeJavaRule):
                     severity="warning",
                     check=self.check_id,
                     summary=(
-                        f"Subject '{base_name}' has both unit test and integration test files"
+                        f"Subject '{base_name}' has both unit test and integration test files "
+                        f"— merge all into {it_path.name}."
                     ),
                     file=str(unit_path.resolve()),
                     line=1,
                     details=f"Found {unit_path.name} and {it_path.name}.",
-                    suggestion=(
-                        f"Merge all tests into a single integration test file ({it_path.name})."
+                    suggestion=DUPLICATE_IT_AND_TEST_SUGGESTION_TEMPLATE.format(
+                        it_file=it_path.name,
                     ),
                 )
             )

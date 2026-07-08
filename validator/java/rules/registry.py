@@ -13,6 +13,7 @@ from validator.java.rules.naming.variable_hungarian_notation import VariableHung
 from validator.java.rules.style.disallowed_comment import DisallowedCommentRule
 from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRule
 from validator.java.rules.style.local_variable_no_var import LocalVariableNoVarRule
+from validator.java.rules.entity.serial_version_uid_on_change import EntitySerialVersionUidOnChangeRule
 from validator.java.rules.testing.duplicate_it_and_test import DuplicateItAndTestRule
 from validator.java.rules.testing.missing_test_class import MissingTestClassRule
 from validator.java.rules.testing.when_generic_variable import TestWhenGenericVariableRule
@@ -33,6 +34,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-duplicate-it-and-test": "Same subject has both *Test and *IT files in the repo",
     "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods",
+    "java-jpa-entity-serial-version-uid": "JPA entity persistent field changes must update serialVersionUID",
 }
 
 RULE_MODULE_EXCLUDES = frozenset(
@@ -81,6 +83,7 @@ def default_tree_java_rules() -> list[TreeJavaRule]:
     return [
         DuplicateItAndTestRule(),
         MissingTestClassRule(),
+        EntitySerialVersionUidOnChangeRule(),
     ]
 
 

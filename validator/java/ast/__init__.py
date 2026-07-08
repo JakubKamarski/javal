@@ -15,6 +15,14 @@ from validator.java.ast.comments import (
 from validator.java.ast.gwt import line_in_range, parse_gwt_section_line_ranges
 from validator.java.ast.imports import collect_identifier_usages, iter_import_declarations
 from validator.java.ast.methods import iter_method_declarations
+from validator.java.ast.entities import (
+    entity_class_name,
+    find_serial_version_uid_field,
+    iter_jpa_entity_class_declarations,
+    iter_persistent_field_declarations,
+    persistent_field_lines,
+    serial_version_uid_lines,
+)
 from validator.java.ast.modifiers import (
     has_query_annotation,
     has_task_changed_query_method,
@@ -55,6 +63,8 @@ __all__ = [
     "VariableDeclaration",
     "collect_identifier_usages",
     "comment_body",
+    "entity_class_name",
+    "find_serial_version_uid_field",
     "has_task_reference",
     "is_allowed_comment",
     "is_deprecation_comment",
@@ -77,13 +87,17 @@ __all__ = [
     "is_optional_type",
     "is_public_top_level_type",
     "iter_import_declarations",
+    "iter_jpa_entity_class_declarations",
     "iter_local_variable_declarations",
     "iter_method_declarations",
+    "iter_persistent_field_declarations",
     "iter_var_declarations",
     "iter_variable_declarations",
     "line_in_range",
     "node_has_annotation",
     "node_has_modifier",
     "parse_gwt_section_line_ranges",
+    "persistent_field_lines",
+    "serial_version_uid_lines",
     "top_level_type_name",
 ]

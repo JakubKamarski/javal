@@ -35,7 +35,9 @@ def test_duplicate_it_and_test_rule_flags_pair_in_fixture_tree():
     assert len(findings) == 1
     assert findings[0].file.endswith("SampleTrackerServiceTest.java")
     assert "SampleTrackerService" in findings[0].summary
+    assert "merge all into SampleTrackerServiceIT.java" in findings[0].summary
     assert "SampleTrackerServiceIT.java" in findings[0].suggestion
+    assert "remove the unit test file" in findings[0].suggestion
 
 
 def test_duplicate_it_and_test_rule_ignores_unit_test_without_it_pair():

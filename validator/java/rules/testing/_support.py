@@ -8,6 +8,11 @@ IT_SUFFIX = "IT"
 
 TESTING_SUGGESTION = "Add the required test class per agents/rule-testing.md."
 
+DUPLICATE_IT_AND_TEST_SUGGESTION_TEMPLATE = (
+    "Merge all tests into {it_file} and remove the unit test file "
+    "(per agents/rule-testing.md)."
+)
+
 
 @dataclass(frozen=True)
 class SubjectTestRequirement:

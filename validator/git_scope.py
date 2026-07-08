@@ -16,6 +16,7 @@ class TaskScope:
     commits: tuple[str, ...]
     changed_lines: dict[str, set[int]]
     line_authors: dict[str, dict[int, str]]
+    commit_changed_lines: tuple[tuple[str, dict[str, set[int]]], ...]
 
     @property
     def java_files(self) -> list[Path]:
@@ -38,6 +39,21 @@ def resolve_repo_path(repo_path: Path | None) -> Path:
     if not resolved.is_dir():
         raise ValueError(f"Not a directory: {resolved}")
     return resolved
+
+
+def resolve_git_repo_root(start: Path) -> Path:
+    candidate = start.resolve()
+    if candidate.is_file():
+        candidate = candidate.parent
+    result = subprocess.run(
+        ["git", "-C", str(candidate), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise ValueError(f"Not a git repository: {start}")
+    return Path(result.stdout.strip()).resolve()
 
 
 def ensure_git_repo(repo: Path) -> None:
@@ -119,10 +135,17 @@ def get_commit_author(repo: Path, commit: str) -> str:
 def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
     commits = list_task_commits(repo, task_id)
     if not commits:
-        return TaskScope(task_id=task_id, commits=(), changed_lines={}, line_authors={})
+        return TaskScope(
+            task_id=task_id,
+            commits=(),
+            changed_lines={},
+            line_authors={},
+            commit_changed_lines=(),
+        )
 
     merged: dict[str, set[int]] = defaultdict(set)
     line_authors: dict[str, dict[int, str]] = defaultdict(dict)
+    commit_changed_lines: list[tuple[str, dict[str, set[int]]]] = []
     for commit in commits:
         author = get_commit_author(repo, commit)
         result = subprocess.run(
@@ -140,11 +163,14 @@ def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
             text=True,
             check=True,
         )
+        per_commit: dict[str, set[int]] = defaultdict(set)
         for relative_path, lines in parse_unified_diff(result.stdout).items():
             merged[relative_path].update(lines)
             absolute_path = str((repo / relative_path).resolve())
+            per_commit[absolute_path].update(lines)
             for line_number in lines:
                 line_authors[absolute_path][line_number] = author
+        commit_changed_lines.append((commit, dict(per_commit)))
 
     absolute_changed = {
         str((repo / relative_path).resolve()): line_numbers
@@ -155,6 +181,7 @@ def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
         commits=tuple(commits),
         changed_lines=absolute_changed,
         line_authors=dict(line_authors),
+        commit_changed_lines=tuple(commit_changed_lines),
     )
 
 

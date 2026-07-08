@@ -205,6 +205,7 @@ Each rule is a dedicated `JavaRule` class:
 | `java-testing-when-generic-variable` | `// WHEN` locals must be descriptive; warns on generic names like `result` |
 | `java-testing-duplicate-it-and-test` | Same subject has both `*Test` and `*IT` files in the repo — merge into the IT file (global scan; not limited to task-changed files) |
 | `java-testing-missing-test-class` | Production classes covered by testing rules must have the required `*IT` or `*Test` counterpart (task-changed `src/main/java` files; fixture layout in unit tests). `*Repository` requires `*RepositoryIT` only when the task adds or changes a custom `@Query` method — derived query methods without `@Query` are excluded |
+| `java-jpa-entity-serial-version-uid` | JPA `@Entity` persistent field changes in task scope must also update `serialVersionUID` |
 | `git-uncommitted-changes` | Working tree has uncommitted changes — commit before finishing validation |
 | `liquibase-changeset-author` | ChangeSet `author` must match the introducing task commit author; uncommitted changeSets use local `git config user.name` (task-introduced or uncommitted changeSets only — opening tag line in task diff or working tree) |
 
