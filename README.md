@@ -200,6 +200,7 @@ Each rule is a dedicated `JavaRule` class:
 | `java-naming-local-variable-optional-prefix` | `Optional<...>` locals must use the `optional` prefix |
 | `java-naming-constant-upper-snake` | Constants must use `UPPER_SNAKE_CASE` |
 | `java-local-variable-no-var` | Local variables must use explicit types (`var` is forbidden) |
+| `java-clean-code-comment` | Only `NOSONAR`, deprecation notes, public API javadoc, GWT markers, and task-referenced `TODO`/`FIXME` are allowed |
 | `java-sonar-generic-type-nosonar` | Non-standard generic type parameter names require `NOSONAR` on the type header |
 | `java-testing-when-generic-variable` | `// WHEN` locals must be descriptive; warns on generic names like `result` |
 | `java-testing-duplicate-it-and-test` | Same subject has both `*Test` and `*IT` files in the repo — merge into the IT file (global scan; not limited to task-changed files) |

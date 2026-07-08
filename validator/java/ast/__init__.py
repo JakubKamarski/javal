@@ -1,5 +1,17 @@
 from __future__ import annotations
 
+from validator.java.ast.comments import (
+    comment_body,
+    has_task_reference,
+    is_allowed_comment,
+    is_deprecation_comment,
+    is_gwt_marker_comment,
+    is_javadoc_comment,
+    is_orphan_todo_fixme,
+    is_public_api_javadoc,
+    is_suppression_comment,
+    iter_comments,
+)
 from validator.java.ast.gwt import line_in_range, parse_gwt_section_line_ranges
 from validator.java.ast.imports import collect_identifier_usages, iter_import_declarations
 from validator.java.ast.methods import iter_method_declarations
@@ -42,6 +54,16 @@ __all__ = [
     "VarDeclaration",
     "VariableDeclaration",
     "collect_identifier_usages",
+    "comment_body",
+    "has_task_reference",
+    "is_allowed_comment",
+    "is_deprecation_comment",
+    "is_gwt_marker_comment",
+    "is_javadoc_comment",
+    "is_orphan_todo_fixme",
+    "is_public_api_javadoc",
+    "is_suppression_comment",
+    "iter_comments",
     "declaration_header_line_numbers",
     "declaration_simple_name",
     "has_query_annotation",

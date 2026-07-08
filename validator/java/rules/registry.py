@@ -10,6 +10,7 @@ from validator.java.rules.naming.local_variable_optional_prefix import LocalVari
 from validator.java.rules.naming.method_verb_prefix import MethodVerbPrefixRule
 from validator.java.rules.naming.variable_collection_type import VariableCollectionTypeInNameRule
 from validator.java.rules.naming.variable_hungarian_notation import VariableHungarianNotationRule
+from validator.java.rules.style.disallowed_comment import DisallowedCommentRule
 from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRule
 from validator.java.rules.style.local_variable_no_var import LocalVariableNoVarRule
 from validator.java.rules.testing.duplicate_it_and_test import DuplicateItAndTestRule
@@ -27,6 +28,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-naming-local-variable-optional-prefix": "Optional<...> locals must use the optional prefix",
     "java-naming-constant-upper-snake": "Constants must use UPPER_SNAKE_CASE",
     "java-local-variable-no-var": "Local variables must use explicit types (var is forbidden)",
+    "java-clean-code-comment": "Only NOSONAR, deprecation, public API javadoc, GWT markers, and task-referenced TODO/FIXME are allowed",
     "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-duplicate-it-and-test": "Same subject has both *Test and *IT files in the repo",
@@ -69,6 +71,7 @@ def default_java_rules() -> list[JavaRule]:
         LocalVariableOptionalPrefixRule(),
         ConstantUpperSnakeCaseRule(),
         LocalVariableNoVarRule(),
+        DisallowedCommentRule(),
         GenericTypeNosonarRule(),
         TestWhenGenericVariableRule(),
     ]
