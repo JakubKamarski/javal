@@ -94,6 +94,7 @@ def test_build_task_scope_collects_only_task_commit_lines(tmp_path):
     bad_file = str((tmp_path / "src/Bad.java").resolve())
     assert bad_file in scope.changed_lines
     assert 3 in scope.changed_lines[bad_file]
+    assert scope.author_for_line(tmp_path / "src/Bad.java", 3) == "Test User"
 
 
 def test_analyze_java_tree_reports_only_task_changed_lines(tmp_path):

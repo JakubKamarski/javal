@@ -206,7 +206,7 @@ Each rule is a dedicated `JavaRule` class:
 | `java-testing-duplicate-it-and-test` | Same subject has both `*Test` and `*IT` files in the repo — merge into the IT file (global scan; not limited to task-changed files) |
 | `java-testing-missing-test-class` | Production classes covered by testing rules must have the required `*IT` or `*Test` counterpart (task-changed `src/main/java` files; fixture layout in unit tests). `*Repository` requires `*RepositoryIT` only when the task adds or changes a custom `@Query` method — derived query methods without `@Query` are excluded |
 | `git-uncommitted-changes` | Working tree has uncommitted changes — commit before finishing validation |
-| `liquibase-changeset-author` | ChangeSet `author` must match local `git config user.name` (task-introduced changeSets only — opening tag line in task diff) |
+| `liquibase-changeset-author` | ChangeSet `author` must match the introducing task commit author; uncommitted changeSets use local `git config user.name` (task-introduced or uncommitted changeSets only — opening tag line in task diff or working tree) |
 
 Naming rules follow `agents/rule-java-naming.md` from the workspace rules repo.
 Testing structure rules follow `agents/rule-testing.md` from the workspace rules repo.

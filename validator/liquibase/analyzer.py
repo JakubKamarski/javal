@@ -1,14 +1,27 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from validator.analyzer_base import allowed_lines_for, changed_files_in_scope, empty_task_scope_pass
 from validator.discovery import discover_files
-from validator.git_scope import TaskScope, get_git_user_name, build_task_scope
+from validator.git_scope import (
+    TaskScope,
+    collect_worktree_changed_lines,
+    get_git_user_name,
+    build_task_scope,
+)
 from validator.liquibase.changeset import ChangeSet, parse_changesets
 from validator.report import Finding, Report
 
 CHECK_ID = "liquibase-changeset-author"
+
+
+@dataclass(frozen=True)
+class AuthorExpectation:
+    name: str
+    source_label: str
 
 
 class LiquibaseAnalyzer:
@@ -43,13 +56,13 @@ class LiquibaseAnalyzer:
         return report
 
     def _analyze_task_scope(self, target: Path, scope: TaskScope, report: Report) -> Report:
-        if not scope.commits:
+        worktree_lines = collect_worktree_changed_lines(target)
+        local_author = get_git_user_name(target)
+        changelog_files = _changelog_files_in_scope(scope, worktree_lines)
+
+        if not scope.commits and not changelog_files:
             return empty_task_scope_pass(report, CHECK_ID, scope, target)
 
-        changelog_files = changed_files_in_scope(
-            scope,
-            predicate=is_liquibase_changelog,
-        )
         if not changelog_files:
             report.add_pass(
                 CHECK_ID,
@@ -57,13 +70,31 @@ class LiquibaseAnalyzer:
             )
             return report
 
-        expected_author = get_git_user_name(target)
         for file_path in changelog_files:
-            allowed_lines = allowed_lines_for(scope, file_path)
+            absolute_path = str(file_path.resolve())
+            allowed_lines = allowed_lines_for(scope, file_path) | worktree_lines.get(
+                absolute_path, set()
+            )
+            uncommitted_lines = worktree_lines.get(absolute_path, set())
+
+            def expected_author_for_line(
+                line: int,
+                *,
+                _file_path: Path = file_path,
+                _uncommitted_lines: set[int] = uncommitted_lines,
+                _local_author: str = local_author,
+            ) -> AuthorExpectation:
+                if line in _uncommitted_lines:
+                    return AuthorExpectation(_local_author, "git user.name")
+                return AuthorExpectation(
+                    scope.author_for_line(_file_path, line),
+                    "commit author",
+                )
+
             for finding in self._check_file(
                 file_path,
-                expected_author=expected_author,
                 allowed_lines=allowed_lines,
+                expected_author_for_line=expected_author_for_line,
             ):
                 report.add_finding(finding)
 
@@ -80,8 +111,9 @@ class LiquibaseAnalyzer:
     def _check_file(
         self,
         file_path: Path,
-        expected_author: str,
+        expected_author: str = "",
         allowed_lines: set[int] | None = None,
+        expected_author_for_line: Callable[[int], AuthorExpectation] | None = None,
     ) -> list[Finding]:
         source = file_path.read_text(encoding="utf-8")
         findings: list[Finding] = []
@@ -92,6 +124,13 @@ class LiquibaseAnalyzer:
                 changeset, allowed_lines
             ):
                 continue
+            if expected_author_for_line is not None:
+                expectation = expected_author_for_line(changeset.start_line)
+                expected = expectation.name
+                expected_label = expectation.source_label
+            else:
+                expected = expected_author
+                expected_label = "git user.name"
             if not changeset.author:
                 findings.append(
                     Finding(
@@ -103,26 +142,31 @@ class LiquibaseAnalyzer:
                         file=absolute_path,
                         line=changeset.start_line,
                         suggestion=(
-                            f"Set author=\"{expected_author}\" on the changeSet opening tag."
+                            f"Set author=\"{expected}\" on the changeSet opening tag."
+                            if expected
+                            else "Set author on the changeSet opening tag."
                         ),
                     )
                 )
                 continue
-            if expected_author and changeset.author != expected_author:
+            if expected and changeset.author != expected:
+                suggestion = (
+                    f"Set author=\"{expected}\" to match the introducing commit author."
+                    if expected_label == "commit author"
+                    else f"Set author=\"{expected}\" to match local git config user.name."
+                )
                 findings.append(
                     Finding(
                         severity="warning",
                         check=CHECK_ID,
                         summary=(
                             f"ChangeSet '{changeset.changeset_id}' author is "
-                            f"'{changeset.author}', expected git user.name "
-                            f"'{expected_author}'"
+                            f"'{changeset.author}', expected {expected_label} "
+                            f"'{expected}'"
                         ),
                         file=absolute_path,
                         line=changeset.start_line,
-                        suggestion=(
-                            f"Set author=\"{expected_author}\" to match local git config user.name."
-                        ),
+                        suggestion=suggestion,
                     )
                 )
         return findings
@@ -146,6 +190,24 @@ def discover_changelog_files(root: Path) -> list[Path]:
 
 def _changeset_introduced_by_task(changeset: ChangeSet, allowed_lines: set[int]) -> bool:
     return changeset.start_line in allowed_lines
+
+
+def _changelog_files_in_scope(
+    scope: TaskScope,
+    worktree_lines: dict[str, set[int]],
+) -> list[Path]:
+    changelog_files = changed_files_in_scope(scope, predicate=is_liquibase_changelog)
+    known_paths = {str(path.resolve()) for path in changelog_files}
+
+    for absolute_path in worktree_lines:
+        if absolute_path in known_paths:
+            continue
+        file_path = Path(absolute_path)
+        if is_liquibase_changelog(file_path):
+            changelog_files.append(file_path)
+            known_paths.add(absolute_path)
+
+    return sorted(changelog_files)
 
 
 def analyze_liquibase_tree(

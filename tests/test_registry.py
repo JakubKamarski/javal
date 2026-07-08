@@ -98,11 +98,11 @@ def test_analyze_repo_accepts_prebuilt_scope(monkeypatch, tmp_path):
 
     def fake_build_scope(repo, task_id):
         calls.append(task_id)
-        return TaskScope(task_id=task_id, commits=(), changed_lines={})
+        return TaskScope(task_id=task_id, commits=(), changed_lines={}, line_authors={})
 
     monkeypatch.setattr("validator.analyze.build_task_scope", fake_build_scope)
 
-    scope = TaskScope(task_id="PLOG-9999", commits=(), changed_lines={})
+    scope = TaskScope(task_id="PLOG-9999", commits=(), changed_lines={}, line_authors={})
     report = analyze_repo(tmp_path, scope=scope, analyzers=(StubAnalyzer(),))
 
     assert calls == []
@@ -114,7 +114,7 @@ def test_analyze_repo_builds_scope_from_task_id_when_missing(monkeypatch, tmp_pa
 
     def fake_build_scope(repo, task_id):
         calls.append(task_id)
-        return TaskScope(task_id=task_id, commits=(), changed_lines={})
+        return TaskScope(task_id=task_id, commits=(), changed_lines={}, line_authors={})
 
     monkeypatch.setattr("validator.analyze.build_task_scope", fake_build_scope)
 

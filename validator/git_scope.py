@@ -15,10 +15,14 @@ class TaskScope:
     task_id: str
     commits: tuple[str, ...]
     changed_lines: dict[str, set[int]]
+    line_authors: dict[str, dict[int, str]]
 
     @property
     def java_files(self) -> list[Path]:
         return sorted(Path(path) for path in self.changed_lines if path.endswith(".java"))
+
+    def author_for_line(self, file_path: Path, line_number: int) -> str:
+        return self.line_authors.get(str(file_path.resolve()), {}).get(line_number, "")
 
 
 def validate_task_id(task_id: str) -> str:
@@ -100,13 +104,27 @@ def parse_unified_diff(diff_text: str) -> dict[str, set[int]]:
     return dict(changed)
 
 
+def get_commit_author(repo: Path, commit: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), "show", commit, "--format=%an", "--no-patch"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    return result.stdout.strip()
+
+
 def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
     commits = list_task_commits(repo, task_id)
     if not commits:
-        return TaskScope(task_id=task_id, commits=(), changed_lines={})
+        return TaskScope(task_id=task_id, commits=(), changed_lines={}, line_authors={})
 
     merged: dict[str, set[int]] = defaultdict(set)
+    line_authors: dict[str, dict[int, str]] = defaultdict(dict)
     for commit in commits:
+        author = get_commit_author(repo, commit)
         result = subprocess.run(
             [
                 "git",
@@ -124,12 +142,53 @@ def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
         )
         for relative_path, lines in parse_unified_diff(result.stdout).items():
             merged[relative_path].update(lines)
+            absolute_path = str((repo / relative_path).resolve())
+            for line_number in lines:
+                line_authors[absolute_path][line_number] = author
 
     absolute_changed = {
         str((repo / relative_path).resolve()): line_numbers
         for relative_path, line_numbers in merged.items()
     }
-    return TaskScope(task_id=task_id, commits=tuple(commits), changed_lines=absolute_changed)
+    return TaskScope(
+        task_id=task_id,
+        commits=tuple(commits),
+        changed_lines=absolute_changed,
+        line_authors=dict(line_authors),
+    )
+
+
+def collect_worktree_changed_lines(repo: Path) -> dict[str, set[int]]:
+    from validator.git_workspace import list_uncommitted_paths
+
+    merged: dict[str, set[int]] = defaultdict(set)
+
+    result = subprocess.run(
+        ["git", "-C", str(repo), "diff", "HEAD", "-U0", "--no-renames"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        for relative_path, lines in parse_unified_diff(result.stdout).items():
+            absolute_path = str((repo / relative_path).resolve())
+            merged[absolute_path].update(lines)
+
+    for relative_path in list_uncommitted_paths(repo):
+        absolute_path = str((repo / relative_path).resolve())
+        if absolute_path in merged:
+            continue
+        file_path = Path(absolute_path)
+        if not file_path.is_file():
+            continue
+        try:
+            line_count = len(file_path.read_text(encoding="utf-8").splitlines())
+        except OSError:
+            continue
+        if line_count:
+            merged[absolute_path].update(range(1, line_count + 1))
+
+    return dict(merged)
 
 
 def get_git_user_name(repo: Path) -> str:
