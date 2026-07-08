@@ -11,6 +11,10 @@ class MethodDeclaration:
     name: str
     line: int
     node: object
+    is_configuration_bean: bool = False
+    is_override: bool = False
+    is_test: bool = False
+    is_record_accessor: bool = False
 
 
 @dataclass(frozen=True)
@@ -29,6 +33,87 @@ class ImportDeclaration:
     node: object
 
 
+def _annotation_simple_name(context: JavaFileContext, annotation_node) -> str | None:
+    for child in annotation_node.children:
+        if child.type == "identifier":
+            return context.text(child)
+        if child.type == "scoped_identifier":
+            return context.text(child).rsplit(".", 1)[-1]
+    return None
+
+
+def _node_has_annotation(context: JavaFileContext, node, *simple_names: str) -> bool:
+    modifiers = next((child for child in node.children if child.type == "modifiers"), None)
+    if modifiers is None:
+        return False
+
+    wanted = set(simple_names)
+    for child in modifiers.children:
+        if child.type not in ("marker_annotation", "annotation"):
+            continue
+        name = _annotation_simple_name(context, child)
+        if name in wanted:
+            return True
+    return False
+
+
+def _enclosing_class_declaration(node):
+    current = node.parent
+    while current is not None:
+        if current.type == "class_declaration":
+            return current
+        current = current.parent
+    return None
+
+
+def _enclosing_record_declaration(node):
+    current = node.parent
+    while current is not None:
+        if current.type == "record_declaration":
+            return current
+        current = current.parent
+    return None
+
+
+def _record_component_names(context: JavaFileContext, record_node) -> set[str]:
+    names: set[str] = set()
+    formal_parameters = next(
+        (child for child in record_node.children if child.type == "formal_parameters"),
+        None,
+    )
+    if formal_parameters is None:
+        return names
+
+    for parameter in formal_parameters.children:
+        if parameter.type != "formal_parameter":
+            continue
+        identifier = next((child for child in parameter.children if child.type == "identifier"), None)
+        if identifier is not None:
+            names.add(context.text(identifier))
+    return names
+
+
+def _is_record_accessor_method(context: JavaFileContext, method_node) -> bool:
+    record_node = _enclosing_record_declaration(method_node)
+    if record_node is None:
+        return False
+
+    identifier = next((child for child in method_node.children if child.type == "identifier"), None)
+    if identifier is None:
+        return False
+
+    return context.text(identifier) in _record_component_names(context, record_node)
+
+
+def _is_configuration_bean_method(context: JavaFileContext, method_node) -> bool:
+    class_node = _enclosing_class_declaration(method_node)
+    if class_node is None:
+        return False
+    return _node_has_annotation(context, class_node, "Configuration") and _node_has_annotation(
+        context, method_node, "Bean"
+    )
+
+
 def iter_method_declarations(context: JavaFileContext):
     for node in context.walk("method_declaration"):
         identifier = next((child for child in node.children if child.type == "identifier"), None)
@@ -38,6 +123,10 @@ def iter_method_declarations(context: JavaFileContext):
             name=context.text(identifier),
             line=node.start_point[0] + 1,
             node=node,
+            is_configuration_bean=_is_configuration_bean_method(context, node),
+            is_override=_node_has_annotation(context, node, "Override"),
+            is_test=_node_has_annotation(context, node, "Test"),
+            is_record_accessor=_is_record_accessor_method(context, node),
         )
 
 

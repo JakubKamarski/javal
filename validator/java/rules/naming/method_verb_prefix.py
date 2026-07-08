@@ -19,6 +19,14 @@ class MethodVerbPrefixRule(JavaRule):
         violations: list[RuleViolation] = []
 
         for method in iter_method_declarations(context):
+            if method.is_configuration_bean:
+                continue
+            if method.is_override:
+                continue
+            if method.is_test:
+                continue
+            if method.is_record_accessor:
+                continue
             if method.name in STANDARD_METHOD_NAMES:
                 continue
             if starts_with_allowed_verb(method.name):

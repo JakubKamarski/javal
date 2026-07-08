@@ -1,0 +1,1 @@
+"""Liquibase changelog validation."""

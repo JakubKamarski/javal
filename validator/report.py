@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 Severity = Literal["error", "warning", "info"]
+PathFormat = Literal["absolute", "relative", "filename"]
 
 
 @dataclass
@@ -21,18 +22,39 @@ class Finding:
     def is_invalid(self) -> bool:
         return self.severity in {"error", "warning"} and bool(self.file)
 
-    def absolute_path(self) -> str:
+    def display_path(
+        self,
+        repo_root: str | Path = "",
+        path_format: PathFormat = "absolute",
+    ) -> str:
         if not self.file:
             return ""
-        return str(Path(self.file).resolve())
+        file_path = Path(self.file).resolve()
+        if path_format == "filename":
+            return file_path.name
+        if path_format == "relative" and repo_root:
+            try:
+                return str(file_path.relative_to(Path(repo_root).resolve()))
+            except ValueError:
+                pass
+        return str(file_path)
 
-    def log_line(self) -> str:
-        path = self.absolute_path()
+    def log_line(
+        self,
+        repo_root: str | Path = "",
+        path_format: PathFormat = "absolute",
+    ) -> str:
+        path = self.display_path(repo_root, path_format)
         line = self.line if self.line > 0 else 0
         return f"{path}|{line}|{self.summary}"
 
-    def task_todo_line(self, done: bool = False) -> str:
-        path = self.absolute_path()
+    def task_todo_line(
+        self,
+        repo_root: str | Path = "",
+        done: bool = False,
+        path_format: PathFormat = "absolute",
+    ) -> str:
+        path = self.display_path(repo_root, path_format)
         line = self.line if self.line > 0 else 0
         marker = "x" if done else " "
         return f"- [{marker}] `{path}:{line}` — {self.summary}"
@@ -63,16 +85,22 @@ class Report:
     def add_pass(self, check: str, summary: str) -> None:
         self.add_finding(Finding(severity="info", check=check, summary=summary))
 
-    def to_log_lines(self) -> str:
-        lines = [finding.log_line() for finding in self.invalid_findings]
+    def to_log_lines(self, path_format: PathFormat = "absolute") -> str:
+        lines = [
+            finding.log_line(self.target, path_format)
+            for finding in self.invalid_findings
+        ]
         return "\n".join(lines)
 
-    def to_task_todos(self) -> str:
+    def to_task_todos(self, path_format: PathFormat = "absolute") -> str:
         if not self.invalid_findings:
             return "- [x] No validation findings."
-        return "\n".join(finding.task_todo_line() for finding in self.invalid_findings)
+        return "\n".join(
+            finding.task_todo_line(self.target, path_format=path_format)
+            for finding in self.invalid_findings
+        )
 
-    def to_markdown(self) -> str:
+    def to_markdown(self, path_format: PathFormat = "absolute") -> str:
         lines = [
             "# Code Validation Report",
             "",
@@ -96,18 +124,24 @@ class Report:
             return "\n".join(lines)
 
         for finding in actionable:
-            lines.extend(self._format_finding(finding))
+            lines.extend(self._format_finding(finding, self.target, path_format))
 
         passed = [f for f in self.findings if f.severity == "info" and not f.file]
         for finding in passed:
-            lines.extend(self._format_finding(finding))
+            lines.extend(self._format_finding(finding, self.target, path_format))
 
         return "\n".join(lines)
 
-    def _format_finding(self, finding: Finding) -> list[str]:
+    def _format_finding(
+        self,
+        finding: Finding,
+        repo_root: str | Path = "",
+        path_format: PathFormat = "absolute",
+    ) -> list[str]:
         block = [f"### [{finding.severity}] {finding.check}", ""]
         if finding.file:
-            loc = f"{finding.file}:{finding.line}" if finding.line else finding.file
+            path = finding.display_path(repo_root, path_format)
+            loc = f"{path}:{finding.line}" if finding.line else path
             block.append(f"- **location:** `{loc}`")
         block.append(f"- **summary:** {finding.summary}")
         if finding.details:

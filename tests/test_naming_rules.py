@@ -8,6 +8,9 @@ from tests.conftest import FIXTURES_DIR, violation_summaries
 
 BAD_METHODS = FIXTURES_DIR / "BadMethodNamesSample.java"
 BAD_VARIABLES = FIXTURES_DIR / "BadVariableNamesSample.java"
+CONFIG_BEAN = FIXTURES_DIR / "ConfigurationBeanSample.java"
+VERB_EXEMPTIONS = FIXTURES_DIR / "VerbPrefixExemptionsSample.java"
+VERB_VIOLATIONS = FIXTURES_DIR / "VerbPrefixExemptionsSample.java"
 CLEAN = FIXTURES_DIR / "CleanService.java"
 
 
@@ -25,12 +28,53 @@ def test_map_style_method_is_flagged(analyzer):
 def test_bare_participle_method_is_flagged(analyzer):
     summaries = violation_summaries(analyzer, "BadMethodNamesSample.java", "java-naming-method-bare-participle")
     assert any("distinctShipments" in summary for summary in summaries)
-
-
-def test_missing_verb_prefix_methods_are_flagged(analyzer):
-    summaries = violation_summaries(analyzer, "BadMethodNamesSample.java", "java-naming-method-verb-prefix")
-    assert any("synchronizeStatuses" in summary for summary in summaries)
     assert any("empty" in summary for summary in summaries)
+
+
+def test_domain_verbs_are_allowed(analyzer):
+    summaries = violation_summaries(analyzer, "BadMethodNamesSample.java", "java-naming-method-verb-prefix")
+    assert not any("synchronizeStatuses" in summary for summary in summaries)
+
+
+def test_noun_only_methods_are_flagged(analyzer):
+    summaries = violation_summaries(analyzer, "BadMethodNamesSample.java", "java-naming-method-verb-prefix")
+    assert any("shipment" in summary for summary in summaries)
+
+
+def test_configuration_bean_method_does_not_require_verb_prefix(analyzer):
+    findings = analyzer.analyze_file(CONFIG_BEAN)
+    verb_prefix_findings = [
+        f for f in findings if f.check == "java-naming-method-verb-prefix" and "lockProvider" in f.summary
+    ]
+    assert verb_prefix_findings == []
+
+
+def test_non_bean_method_in_configuration_class_still_requires_verb_prefix(analyzer):
+    summaries = violation_summaries(analyzer, "ConfigurationBeanSample.java", "java-naming-method-verb-prefix")
+    assert not any("synchronizeStatuses" in summary for summary in summaries)
+
+
+def test_framework_exemptions_skip_verb_prefix_check(analyzer):
+    findings = analyzer.analyze_file(VERB_EXEMPTIONS)
+    verb_prefix_findings = [f for f in findings if f.check == "java-naming-method-verb-prefix"]
+    allowed_fragments = {
+        "checkStatus",
+        "request",
+        "checkCurrentStatuses",
+        "checkStatusShouldReturnMappedStatus",
+        "setUp",
+        "requestBatchSize",
+        "computeDbBatchSize",
+    }
+    assert not any(any(fragment in finding.summary for fragment in allowed_fragments) for finding in verb_prefix_findings)
+
+
+def test_noun_and_to_prefix_methods_remain_flagged(analyzer):
+    findings = analyzer.analyze_file(VERB_VIOLATIONS)
+    verb_prefix_findings = [f.summary for f in findings if f.check == "java-naming-method-verb-prefix"]
+    assert any("statusCall" in summary for summary in verb_prefix_findings)
+    assert any("shipment" in summary for summary in verb_prefix_findings)
+    assert any("toStatusUpdate" in summary for summary in verb_prefix_findings)
 
 
 @pytest.mark.parametrize(

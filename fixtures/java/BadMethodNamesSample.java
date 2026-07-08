@@ -17,6 +17,10 @@ public class BadMethodNamesSample {
         // domain verb not in allowed prefix list
     }
 
+    public void shipment() {
+        // noun-only method name
+    }
+
     public boolean empty() {
         return true;
     }

@@ -61,9 +61,30 @@ javal PLOG-5164 worktrees/PLOG-5164/locus-fc-orlen
 # Task-file todo output
 javal PLOG-5164 --format task
 
+# Human-friendly relative paths
+javal PLOG-5164 --path-format relative
+
+# Filename-only paths
+javal PLOG-5164 --path-format filename
+
 # Markdown report
 javal PLOG-5164 --format markdown worktrees/PLOG-5164/locus-fc-orlen
+
+# Report a false-positive or validator bug (AI agents)
+javal todo \
+  --file /Users/you/work/projects/locus-fc-orlen/src/Foo.java \
+  --line 42 \
+  --description "False positive: unused-imports — Set is used via static import"
 ```
+
+### Options
+
+| Flag / command | Default | Description |
+|----------------|---------|-------------|
+| `--format` | `log` | Output layout: `log`, `markdown`, or `task` |
+| `--path-format` | `absolute` | File path style: `absolute`, `relative`, or `filename` |
+| `-q` / `--quiet` | off | Suppress progress on stderr |
+| `javal todo` | — | Report false positive or validator bug (see below) |
 
 ## Task scope
 
@@ -90,8 +111,10 @@ Lines untouched by the task are ignored, even if they violate a rule.
 One invalid finding per line:
 
 ```text
-/absolute/path/File.java|42|Unused import 'Set'
+/Users/you/work/projects/locus-fc-orlen/src/main/java/File.java|42|Unused import 'Set'
 ```
+
+Paths are **absolute** by default (for agents and tooling). Use `--path-format relative` or `--path-format filename` for shorter human-readable output.
 
 ### Task format
 
@@ -102,7 +125,7 @@ javal PLOG-5164 --format task
 ```
 
 ```markdown
-- [ ] `/absolute/path/File.java:42` — Unused import 'Set'
+- [ ] `/Users/you/work/projects/locus-fc-orlen/src/main/java/File.java:42` — Unused import 'Set'
 ```
 
 ### Exit codes
@@ -115,6 +138,50 @@ javal PLOG-5164 --format task
 
 Progress and scope summary go to **stderr**; findings go to **stdout**.
 
+## Report validator issues (for AI agents)
+
+Use `javal todo` to log false positives or validator bugs to local `todo.md` in this repository (gitignored, not committed).
+
+```bash
+javal todo --file <path> --line <n> --description "<issue>"
+```
+
+Run `javal todo --help` for full flag reference.
+
+### When to use
+
+- Finding is a **false positive** — code is correct but javal flags it (e.g. static import not detected, missing framework exemption)
+- Finding is a **validator bug** — rule logic is wrong, crashes, or reports the wrong line
+- You verified the flagged line and rule name; description explains *why* javal is wrong
+
+### When NOT to use
+
+- Stylistic disagreement with a valid rule — fix the Java source instead
+- Pre-existing violation on untouched lines (out of task scope) — ignore, do not report
+- User explicitly approved an exception in the task file — document there, not in `todo.md`
+- To avoid validation-fix work — never use `todo` to bypass the mandatory gate
+
+### How agents should use it
+
+1. Run `javal <TASK-ID>` and parse `path|line|description` from stdout
+2. Inspect the flagged file at that line; confirm it is a false positive or bug (not a fixable violation)
+3. Run `javal todo --file <absolute-path> --line <n> --description "<check>: <why javal is wrong>"`
+4. Use the **same absolute path** from javal log output (default `--path-format absolute`)
+5. Include the check/rule name in the description when known (e.g. `unused-imports`, `java-naming-method-verb-prefix`)
+6. Continue the validation-fix workflow for **remaining real findings** — reporting one false positive does not clear the gate
+7. Tell the user you reported a validator issue and that `todo.md` was updated locally
+
+### Example
+
+```bash
+javal todo \
+  --file /Users/you/work/projects/locus-fc-orlen/src/main/java/Foo.java \
+  --line 42 \
+  --description "False positive: unused-imports — Set is used via static import"
+```
+
+Stdout prints the appended markdown line; exit code `0` confirms success.
+
 ## Rules
 
 Each rule is a dedicated `JavaRule` class:
@@ -122,12 +189,13 @@ Each rule is a dedicated `JavaRule` class:
 | Check | Description |
 |-------|-------------|
 | `unused-imports` | Import declared but not referenced |
-| `java-naming-method-verb-prefix` | Method must start with allowed action verb |
+| `java-naming-method-verb-prefix` | Method must start with an action verb (with framework exemptions) |
 | `java-naming-method-map-style` | Map-style method names without verb prefix |
-| `java-naming-method-bare-participle` | Bare participles (`distinct`, `sorted`, …) |
+| `java-naming-method-bare-participle` | Bare participles/adjectives (`distinct`, `sorted`, `empty`, …) |
 | `java-naming-variable-collection-type` | `List` / `Set` / `Map` embedded in variable name |
 | `java-naming-variable-hungarian` | Hungarian notation (`strName`, `intCount`, …) |
 | `java-naming-constant-upper-snake` | Constants must use `UPPER_SNAKE_CASE` |
+| `liquibase-changeset-author` | ChangeSet `author` must match local `git config user.name` (task-introduced changeSets only — opening tag line in task diff) |
 
 Naming rules follow `agents/rule-java-naming.md` from the workspace rules repo.
 

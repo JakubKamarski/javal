@@ -3,27 +3,45 @@ from __future__ import annotations
 import re
 
 ALLOWED_METHOD_PREFIXES = (
-    "build",
-    "get",
-    "create",
-    "update",
-    "remove",
-    "resolve",
+    "synchronize",
     "calculate",
     "retrieve",
-    "filter",
-    "find",
-    "provide",
-    "map",
-    "group",
-    "convert",
     "validate",
-    "is",
-    "has",
-    "can",
-    "should",
-    "of",
+    "compute",
+    "convert",
+    "execute",
+    "process",
+    "provide",
+    "persist",
+    "request",
+    "resolve",
+    "remove",
+    "update",
+    "create",
+    "filter",
+    "handle",
+    "apply",
+    "build",
+    "check",
+    "fetch",
+    "find",
     "from",
+    "group",
+    "load",
+    "parse",
+    "read",
+    "save",
+    "send",
+    "call",
+    "write",
+    "should",
+    "map",
+    "get",
+    "has",
+    "log",
+    "can",
+    "is",
+    "of",
 )
 
 STANDARD_METHOD_NAMES = {
@@ -42,9 +60,11 @@ STANDARD_METHOD_NAMES = {
     "valueOf",
     "values",
     "name",
+    "setUp",
+    "tearDown",
 }
 
-BARE_PARTICIPLE_PREFIXES = ("distinct", "sorted", "grouped", "filtered")
+BARE_PARTICIPLE_PREFIXES = ("distinct", "sorted", "grouped", "filtered", "empty")
 
 COLLECTION_TYPE_TOKENS = ("List", "Set", "Map")
 

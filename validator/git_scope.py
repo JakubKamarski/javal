@@ -80,7 +80,7 @@ def parse_unified_diff(diff_text: str) -> dict[str, set[int]]:
             continue
         if line.startswith("--- "):
             continue
-        if current_file is None or not current_file.endswith(".java"):
+        if current_file is None:
             continue
         if not line.startswith("@@"):
             continue
@@ -130,6 +130,18 @@ def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
         for relative_path, line_numbers in merged.items()
     }
     return TaskScope(task_id=task_id, commits=tuple(commits), changed_lines=absolute_changed)
+
+
+def get_git_user_name(repo: Path) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    return result.stdout.strip()
 
 
 def build_task_scope(repo: Path, task_id: str) -> TaskScope:
