@@ -7,7 +7,9 @@ from validator.java.rules.base import JavaRule, RuleViolation
 _ORPHAN_TODO_SUGGESTION = "Reference a task ID (e.g. PLOG-1234) in TODO/FIXME comments."
 _DISALLOWED_COMMENT_SUGGESTION = (
     "Remove explanatory comments; keep code self-explanatory or use an approved exception "
-    "(NOSONAR, deprecation note, public API javadoc, GWT marker, task-referenced TODO/FIXME)."
+    "(NOSONAR, deprecation note, public API javadoc, GWT marker, task-referenced TODO/FIXME). "
+    "If the comment is critical for understanding and the code cannot reasonably convey it, "
+    "keep the comment and skip removal."
 )
 
 
