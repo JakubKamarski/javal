@@ -200,6 +200,7 @@ Each rule is a dedicated `JavaRule` class:
 | `java-naming-local-variable-optional-prefix` | `Optional<...>` locals must use the `optional` prefix |
 | `java-naming-constant-upper-snake` | Constants must use `UPPER_SNAKE_CASE` |
 | `java-local-variable-no-var` | Local variables must use explicit types (`var` is forbidden) |
+| `java-sonar-generic-type-nosonar` | Non-standard generic type parameter names require `NOSONAR` on the type header |
 | `java-testing-when-generic-variable` | `// WHEN` locals must be descriptive; warns on generic names like `result` |
 | `java-testing-duplicate-it-and-test` | Same subject has both `*Test` and `*IT` files in the repo — merge into the IT file (global scan; not limited to task-changed files) |
 | `java-testing-missing-test-class` | Production classes covered by testing rules must have the required `*IT` or `*Test` counterpart (task-changed `src/main/java` files; fixture layout in unit tests). `*Repository` requires `*RepositoryIT` only when the task adds or changes a custom `@Query` method — derived query methods without `@Query` are excluded |
