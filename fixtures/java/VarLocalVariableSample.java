@@ -6,8 +6,8 @@ import java.util.stream.Stream;
 public class VarLocalVariableSample {
 
     void localDeclaration() {
-        var shipments = List.of("WB-1");
-        String waybill = "WB-2";
+        var shipments = List.of("item-1");
+        String waybill = "item-2";
     }
 
     void tryWithResources() throws Exception {

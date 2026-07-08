@@ -5,6 +5,21 @@ from functools import lru_cache
 from tree_sitter import Language, Parser
 import tree_sitter_java as tsjava
 
+# tree-sitter-java can desync on multi-byte Unicode dashes in comments, which corrupts
+# later method names and hides identifier usages in the rest of the file.
+_UNICODE_DASH_REPLACEMENTS = str.maketrans(
+    {
+        "\u2012": "-",  # figure dash
+        "\u2013": "-",  # en dash
+        "\u2014": "-",  # em dash
+        "\u2015": "-",  # horizontal bar
+    }
+)
+
+
+def normalize_java_source(source: str) -> str:
+    return source.translate(_UNICODE_DASH_REPLACEMENTS)
+
 
 @lru_cache(maxsize=1)
 def get_parser() -> Parser:
@@ -13,11 +28,13 @@ def get_parser() -> Parser:
 
 
 def parse_java(source: str):
-    return get_parser().parse(bytes(source, "utf8"))
+    normalized = normalize_java_source(source)
+    return get_parser().parse(bytes(normalized, "utf8"))
 
 
 def node_text(source: str, node) -> str:
-    return source[node.start_byte : node.end_byte]
+    normalized = normalize_java_source(source)
+    return normalized[node.start_byte : node.end_byte]
 
 
 def walk_nodes(root, *node_types: str):

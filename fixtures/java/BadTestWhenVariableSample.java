@@ -9,7 +9,7 @@ class BadTestWhenVariableSample {
     @Test
     void checkStatus_GivenWaybill_WhenChecked_ThenReturnsStatus() {
         // GIVEN
-        String waybill = "WB-1";
+        String waybill = "item-1";
 
         // WHEN
         String result = "DELIVERED";
@@ -27,7 +27,7 @@ class BadTestWhenVariableSample {
     @Test
     void checkStatus_GivenWaybill_WhenChecked_ThenReturnsMappedStatus() {
         // GIVEN
-        String waybill = "WB-1";
+        String waybill = "item-1";
 
         // WHEN
         String shipmentStatus = "DELIVERED";

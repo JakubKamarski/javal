@@ -11,6 +11,7 @@ class MethodDeclaration:
     is_configuration_bean: bool = False
     is_override: bool = False
     is_test: bool = False
+    is_lifecycle: bool = False
     is_record_accessor: bool = False
 
 

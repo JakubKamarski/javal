@@ -25,6 +25,8 @@ class MethodVerbPrefixRule(JavaRule):
                 continue
             if method.is_test:
                 continue
+            if method.is_lifecycle:
+                continue
             if method.is_record_accessor:
                 continue
             if method.name in STANDARD_METHOD_NAMES:

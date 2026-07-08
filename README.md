@@ -216,14 +216,24 @@ pip install -r requirements.txt
 pytest
 ```
 
-Fixture samples under `fixtures/java/` support unit tests. Task-scoped behaviour is covered by git fixture tests under `tests/`.
+Fixture samples under `fixtures/` support unit tests. Task-scoped behaviour is covered by git fixture tests under `tests/`.
+
+### Fixture and test-data conventions (MANDATORY)
+
+- **Minimal**: Include only the smallest snippet that reproduces the behaviour under test.
+- **Anonymized**: Use generic names (`Sample*`, `item-a`, `demo` packages). Never copy production classes, packages, waybills, or integration stacks from real repos.
+- **Self-contained**: Keep data inside `fixtures/`; do not reference worktrees, `projects/locus-*`, or absolute paths to implementation repos in fixtures or pytest.
+- **No production IT clones**: Do not paste WireMock/Spring/DB-heavy IT bodies into fixtures; model the parser/rule edge case with a few lines instead.
+- **Guarded**: `tests/test_fixture_conventions.py` enforces the banned-pattern list; extend it when a new leak pattern appears.
+
+When adding a rule, add a **minimal anonymized** fixture plus pytest coverage — not a trimmed copy of a task worktree file.
 
 ## Adding a rule
 
 1. Copy [`validator/java/rules/_template.py`](validator/java/rules/_template.py) as a starting point.
 2. Create `validator/java/rules/<category>/<rule_name>.py` implementing `JavaRule` or `TreeJavaRule`.
 3. Register the class in `validator/java/rules/registry.py` and add a description to `RULE_DESCRIPTIONS`.
-4. Add a fixture Java sample and pytest coverage.
+4. Add a minimal anonymized fixture sample and pytest coverage (see **Fixture and test-data conventions** above).
 
 List registered rules:
 
