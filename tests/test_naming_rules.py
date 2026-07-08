@@ -31,6 +31,23 @@ def test_bare_participle_method_is_flagged(analyzer):
     assert any("empty" in summary for summary in summaries)
 
 
+def test_prepare_prefix_methods_are_allowed(analyzer):
+    source = """
+package fixtures.samples;
+
+class PreparePrefixSample {
+    private void prepareLoginStub(String login) {
+    }
+
+    private void prepareTrackingStub(String waybill) {
+    }
+}
+"""
+    findings = analyzer.analyze_source("PreparePrefixSample.java", source)
+    verb_prefix = [finding for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+    assert verb_prefix == []
+
+
 def test_reset_prefix_methods_are_allowed(analyzer):
     source = """
 package fixtures.samples;

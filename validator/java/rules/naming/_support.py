@@ -13,6 +13,7 @@ ALLOWED_METHOD_PREFIXES = (
     "process",
     "provide",
     "persist",
+    "prepare",
     "request",
     "resolve",
     "reset",
