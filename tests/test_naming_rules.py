@@ -62,6 +62,21 @@ class ResetPrefixSample {
     assert verb_prefix == []
 
 
+def test_count_prefix_methods_are_allowed(analyzer):
+    source = """
+package fixtures.samples;
+
+class CountPrefixSample {
+    int countShipmentsByStatus(String status) {
+        return 0;
+    }
+}
+"""
+    findings = analyzer.analyze_source("CountPrefixSample.java", source)
+    verb_prefix = [finding for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+    assert verb_prefix == []
+
+
 def test_stub_prefix_methods_are_allowed(analyzer):
     source = """
 package fixtures.samples;

@@ -9,6 +9,7 @@ ALLOWED_METHOD_PREFIXES = (
     "validate",
     "compute",
     "convert",
+    "count",
     "execute",
     "process",
     "provide",
