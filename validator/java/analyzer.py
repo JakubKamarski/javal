@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from validator.git_scope import TaskScope
+from validator.analyzer_base import allowed_lines_for, changed_files_in_scope, empty_task_scope_pass
+from validator.discovery import discover_files
+from validator.git_scope import TaskScope, build_task_scope
 from validator.java.context import JavaFileContext
 from validator.java.rules.base import JavaRule, TreeJavaRule
 from validator.java.rules.registry import default_java_rules, default_tree_java_rules
 from validator.report import Finding, Report
-
-SKIP_DIRS = {".git", "target", "build", "out", ".idea", "node_modules"}
 
 
 class JavaAnalyzer:
@@ -27,6 +27,9 @@ class JavaAnalyzer:
     @property
     def tree_rules(self) -> list[TreeJavaRule]:
         return list(self._tree_rules)
+
+    def analyze(self, target: Path, scope: TaskScope | None = None) -> Report:
+        return self.analyze_tree(target, scope=scope)
 
     def analyze_source(self, path: str, source: str) -> list[Finding]:
         context = JavaFileContext.from_source(path, source)
@@ -70,17 +73,12 @@ class JavaAnalyzer:
 
     def _analyze_task_scope(self, target: Path, scope: TaskScope, report: Report) -> Report:
         if not scope.commits:
-            report.add_pass(
-                "java-analysis",
-                f"No commits found for task {scope.task_id} in {target}.",
-            )
-            return report
+            return empty_task_scope_pass(report, "java-analysis", scope, target)
 
-        java_files = [
-            Path(path)
-            for path in scope.changed_lines
-            if path.endswith(".java") and Path(path).is_file()
-        ]
+        java_files = changed_files_in_scope(
+            scope,
+            predicate=lambda path: path.suffix == ".java",
+        )
         if not java_files:
             report.add_pass(
                 "java-analysis",
@@ -89,8 +87,8 @@ class JavaAnalyzer:
             return report
 
         analyzed_lines = 0
-        for file_path in sorted(java_files):
-            allowed_lines = scope.changed_lines[str(file_path.resolve())]
+        for file_path in java_files:
+            allowed_lines = allowed_lines_for(scope, file_path)
             analyzed_lines += len(allowed_lines)
             for finding in self.analyze_file(file_path):
                 if finding.line in allowed_lines:
@@ -131,24 +129,16 @@ class JavaAnalyzer:
 
 
 def discover_java_files(root: Path) -> list[Path]:
-    files: list[Path] = []
-    for path in root.rglob("*.java"):
-        if any(part in SKIP_DIRS for part in path.parts):
-            continue
-        files.append(path)
-    return sorted(files)
+    return discover_files(root, pattern="*.java")
 
 
 def analyze_java_tree(
     target: Path,
     task_id: str | None = None,
+    scope: TaskScope | None = None,
     rules: list[JavaRule] | None = None,
 ) -> Report:
     analyzer = JavaAnalyzer(rules=rules)
-    if task_id is None:
-        return analyzer.analyze_tree(target)
-
-    from validator.git_scope import build_task_scope
-
-    scope = build_task_scope(target, task_id)
+    if scope is None and task_id is not None:
+        scope = build_task_scope(target, task_id)
     return analyzer.analyze_tree(target, scope=scope)

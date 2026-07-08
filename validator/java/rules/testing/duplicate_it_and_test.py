@@ -17,6 +17,8 @@ __all__ = [
 
 
 class DuplicateItAndTestRule(TreeJavaRule):
+    scope_policy = "global"
+
     @property
     def check_id(self) -> str:
         return "java-testing-duplicate-it-and-test"

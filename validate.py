@@ -7,6 +7,7 @@ from pathlib import Path
 
 from validator.analyze import analyze_repo
 from validator.git_scope import build_task_scope, resolve_repo_path, validate_task_id
+from validator.java.rules.registry import list_registered_rule_meta
 from validator.todo import append_todo
 
 VALIDATE_EPILOG = (
@@ -43,6 +44,16 @@ TODO_EPILOG = (
     "\n"
     "Appends to projects/me-javal/todo.md (local, gitignored). Prints the line on stdout."
 )
+
+
+def parse_list_rules_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="javal list-rules",
+        description="List registered Java validation rules.",
+    )
+    args = parser.parse_args(argv)
+    args.command = "list-rules"
+    return args
 
 
 def parse_validate_args(argv: list[str]) -> argparse.Namespace:
@@ -118,6 +129,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     tokens = list(argv if argv is not None else sys.argv[1:])
     if tokens and tokens[0] == "todo":
         return parse_todo_args(tokens[1:])
+    if tokens and tokens[0] == "list-rules":
+        return parse_list_rules_args(tokens[1:])
     return parse_validate_args(tokens)
 
 
@@ -129,6 +142,16 @@ def run_todo(args: argparse.Namespace) -> int:
         return 2
 
     print(line)
+    return 0
+
+
+def run_list_rules(args: argparse.Namespace) -> int:
+    del args
+    for meta in list_registered_rule_meta():
+        scope = meta.scope
+        if meta.tree_scope:
+            scope = f"{scope}/{meta.tree_scope}"
+        print(f"{meta.check_id}\t{scope}\t{meta.description}")
     return 0
 
 
@@ -155,7 +178,7 @@ def run_validate(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
 
-    report = analyze_repo(target, task_id=task_id)
+    report = analyze_repo(target, scope=scope)
 
     path_format = args.path_format
     if args.format == "markdown":
@@ -174,6 +197,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.command == "todo":
         return run_todo(args)
+    if args.command == "list-rules":
+        return run_list_rules(args)
     return run_validate(args)
 
 

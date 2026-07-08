@@ -3,7 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from validator.report import Finding
+from validator.git_scope import TaskScope
+from validator.report import Finding, Report
 
 CHECK_ID = "git-uncommitted-changes"
 
@@ -52,3 +53,16 @@ def build_uncommitted_changes_finding(repo: Path) -> Finding | None:
         details=details,
         suggestion="Commit local changes before finishing validation.",
     )
+
+
+class GitWorkspaceAnalyzer:
+    def analyze(self, target: Path, scope: TaskScope | None = None) -> Report:
+        report = Report(
+            target=str(target.resolve()),
+            task_id=scope.task_id if scope else "",
+        )
+        report.add_check(CHECK_ID)
+        finding = build_uncommitted_changes_finding(target)
+        if finding is not None:
+            report.add_finding(finding)
+        return report

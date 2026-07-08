@@ -85,6 +85,26 @@ class Report:
     def add_pass(self, check: str, summary: str) -> None:
         self.add_finding(Finding(severity="info", check=check, summary=summary))
 
+    @classmethod
+    def merge(cls, reports: list[Report]) -> Report:
+        if not reports:
+            return cls(target="", task_id="")
+
+        merged = cls(
+            target=reports[0].target,
+            task_id=reports[0].task_id,
+        )
+        for report in reports:
+            if report.target and not merged.target:
+                merged.target = report.target
+            if report.task_id and not merged.task_id:
+                merged.task_id = report.task_id
+            for check in report.checks_run:
+                merged.add_check(check)
+            for finding in report.findings:
+                merged.add_finding(finding)
+        return merged
+
     def to_log_lines(self, path_format: PathFormat = "absolute") -> str:
         lines = [
             finding.log_line(self.target, path_format)

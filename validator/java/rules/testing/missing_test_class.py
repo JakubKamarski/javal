@@ -3,6 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from validator.git_scope import TaskScope
+from validator.java.ast import (
+    has_query_annotation,
+    is_abstract_top_level_type,
+    is_public_top_level_type,
+)
 from validator.java.context import JavaFileContext
 from validator.java.rules.base import TreeJavaRule
 from validator.java.rules.testing._support import (
@@ -14,44 +19,6 @@ from validator.java.rules.testing._support import (
     subject_test_requirement,
 )
 from validator.report import Finding
-
-
-def _node_has_modifier(context: JavaFileContext, node, modifier: str) -> bool:
-    modifiers = next((child for child in node.children if child.type == "modifiers"), None)
-    if modifiers is None:
-        return False
-    return modifier in context.text(modifiers).split()
-
-
-def _top_level_type_name(context: JavaFileContext, node_type: str, type_name: str) -> object | None:
-    for node in context.walk(node_type):
-        identifier = next((child for child in node.children if child.type == "identifier"), None)
-        if identifier is not None and context.text(identifier) == type_name:
-            return node
-    return None
-
-
-def _is_public_top_level_type(context: JavaFileContext, type_name: str) -> bool:
-    for node_type in ("class_declaration", "interface_declaration"):
-        node = _top_level_type_name(context, node_type, type_name)
-        if node is not None:
-            return _node_has_modifier(context, node, "public")
-    return False
-
-
-def _is_abstract_top_level_type(context: JavaFileContext, type_name: str) -> bool:
-    node = _top_level_type_name(context, "class_declaration", type_name)
-    if node is None:
-        return False
-    return _node_has_modifier(context, node, "abstract")
-
-
-def _has_query_annotation(context: JavaFileContext) -> bool:
-    for node in context.walk("marker_annotation", "annotation"):
-        text = context.text(node)
-        if text == "@Query" or text.startswith("@Query("):
-            return True
-    return False
 
 
 def _production_sources_to_check(java_files: list[Path], scope: TaskScope | None) -> list[Path]:
@@ -81,6 +48,8 @@ def _is_checkable_production_source(path: Path) -> bool:
 
 
 class MissingTestClassRule(TreeJavaRule):
+    scope_policy = "task_changed"
+
     @property
     def check_id(self) -> str:
         return "java-testing-missing-test-class"
@@ -106,11 +75,11 @@ class MissingTestClassRule(TreeJavaRule):
             return None
 
         context = JavaFileContext.from_path(source_path)
-        if _is_abstract_top_level_type(context, class_name):
+        if is_abstract_top_level_type(context, class_name):
             return None
-        if requirement.requires_public_class and not _is_public_top_level_type(context, class_name):
+        if requirement.requires_public_class and not is_public_top_level_type(context, class_name):
             return None
-        if requirement.requires_query_annotation and not _has_query_annotation(context):
+        if requirement.requires_query_annotation and not has_query_annotation(context):
             return None
 
         test_class_name = expected_test_class_name(class_name, requirement)

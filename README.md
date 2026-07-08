@@ -85,6 +85,7 @@ javal todo \
 | `--path-format` | `absolute` | File path style: `absolute`, `relative`, or `filename` |
 | `-q` / `--quiet` | off | Suppress progress on stderr |
 | `javal todo` | — | Report false positive or validator bug (see below) |
+| `javal list-rules` | — | List registered validation rules with scope and description |
 
 ## Task scope
 
@@ -219,6 +220,17 @@ Fixture samples under `fixtures/java/` support unit tests. Task-scoped behaviour
 
 ## Adding a rule
 
-1. Create `validator/java/rules/<category>/<rule_name>.py` implementing `JavaRule`.
-2. Register the class in `validator/java/rules/registry.py`.
-3. Add a fixture Java sample and pytest coverage.
+1. Copy [`validator/java/rules/_template.py`](validator/java/rules/_template.py) as a starting point.
+2. Create `validator/java/rules/<category>/<rule_name>.py` implementing `JavaRule` or `TreeJavaRule`.
+3. Register the class in `validator/java/rules/registry.py` and add a description to `RULE_DESCRIPTIONS`.
+4. Add a fixture Java sample and pytest coverage.
+
+List registered rules:
+
+```bash
+javal list-rules
+```
+
+Tree rules use `scope_policy`:
+- `task_changed` — only task-changed production files (default)
+- `global` — whole repository scan (e.g. duplicate IT/Test detection)

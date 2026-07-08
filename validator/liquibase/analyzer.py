@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from validator.git_scope import TaskScope, get_git_user_name
+from validator.analyzer_base import allowed_lines_for, changed_files_in_scope, empty_task_scope_pass
+from validator.discovery import discover_files
+from validator.git_scope import TaskScope, get_git_user_name, build_task_scope
 from validator.liquibase.changeset import ChangeSet, parse_changesets
 from validator.report import Finding, Report
 
-SKIP_DIRS = {".git", "target", "build", "out", ".idea", "node_modules"}
 CHECK_ID = "liquibase-changeset-author"
 
 
 class LiquibaseAnalyzer:
+    def analyze(self, target: Path, scope: TaskScope | None = None) -> Report:
+        return self.analyze_tree(target, scope=scope)
+
     def analyze_tree(self, target: Path, scope: TaskScope | None = None) -> Report:
         report = Report(
             target=str(target.resolve()),
@@ -40,17 +44,12 @@ class LiquibaseAnalyzer:
 
     def _analyze_task_scope(self, target: Path, scope: TaskScope, report: Report) -> Report:
         if not scope.commits:
-            report.add_pass(
-                CHECK_ID,
-                f"No commits found for task {scope.task_id} in {target}.",
-            )
-            return report
+            return empty_task_scope_pass(report, CHECK_ID, scope, target)
 
-        changelog_files = [
-            Path(path)
-            for path in scope.changed_lines
-            if is_liquibase_changelog(Path(path))
-        ]
+        changelog_files = changed_files_in_scope(
+            scope,
+            predicate=is_liquibase_changelog,
+        )
         if not changelog_files:
             report.add_pass(
                 CHECK_ID,
@@ -59,8 +58,8 @@ class LiquibaseAnalyzer:
             return report
 
         expected_author = get_git_user_name(target)
-        for file_path in sorted(changelog_files):
-            allowed_lines = scope.changed_lines[str(file_path.resolve())]
+        for file_path in changelog_files:
+            allowed_lines = allowed_lines_for(scope, file_path)
             for finding in self._check_file(
                 file_path,
                 expected_author=expected_author,
@@ -142,13 +141,7 @@ def is_liquibase_changelog(path: Path) -> bool:
 
 
 def discover_changelog_files(root: Path) -> list[Path]:
-    files: list[Path] = []
-    for path in root.rglob("*.xml"):
-        if any(part in SKIP_DIRS for part in path.parts):
-            continue
-        if is_liquibase_changelog(path):
-            files.append(path)
-    return sorted(files)
+    return discover_files(root, pattern="*.xml", predicate=is_liquibase_changelog)
 
 
 def _changeset_introduced_by_task(changeset: ChangeSet, allowed_lines: set[int]) -> bool:
@@ -158,12 +151,9 @@ def _changeset_introduced_by_task(changeset: ChangeSet, allowed_lines: set[int])
 def analyze_liquibase_tree(
     target: Path,
     task_id: str | None = None,
+    scope: TaskScope | None = None,
 ) -> Report:
     analyzer = LiquibaseAnalyzer()
-    if task_id is None:
-        return analyzer.analyze_tree(target)
-
-    from validator.git_scope import build_task_scope
-
-    scope = build_task_scope(target, task_id)
+    if scope is None and task_id is not None:
+        scope = build_task_scope(target, task_id)
     return analyzer.analyze_tree(target, scope=scope)
