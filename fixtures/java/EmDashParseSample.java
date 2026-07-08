@@ -14,7 +14,7 @@ class EmDashParseSample {
 
     @Test
     void executeFirstScenarioWithLongMethodNameThatSpansParserBoundaryOne() {
-        buildResponse("item-a", """
+        stubResponse("item-a", """
             {"id":"1"}
             """);
         // WHEN — em dash in a comment can desync tree-sitter-java
@@ -26,7 +26,7 @@ class EmDashParseSample {
         checkValues(List.of("item-b"));
     }
 
-    private void buildResponse(String key, String body) {
+    private void stubResponse(String key, String body) {
         checkValues(List.of(key, body));
     }
 

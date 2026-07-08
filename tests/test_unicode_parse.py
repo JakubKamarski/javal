@@ -17,7 +17,7 @@ def test_em_dash_fixture_parses_full_method_names():
     context = JavaFileContext.from_path(EM_DASH_FIXTURE)
     method_names = {method.name for method in iter_method_declarations(context)}
     assert "executeSecondScenarioWithEquallyLongMethodNameThatMustStayIntactTwo" in method_names
-    assert "buildResponse" in method_names
+    assert "stubResponse" in method_names
     assert not any(name.startswith("onize") for name in method_names)
     assert not any(len(name) < 10 and "Scenario" in name for name in method_names)
 

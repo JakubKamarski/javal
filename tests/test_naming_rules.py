@@ -31,6 +31,34 @@ def test_bare_participle_method_is_flagged(analyzer):
     assert any("empty" in summary for summary in summaries)
 
 
+def test_reset_prefix_methods_are_allowed(analyzer):
+    source = """
+package fixtures.samples;
+
+class ResetPrefixSample {
+    void resetState() {
+    }
+}
+"""
+    findings = analyzer.analyze_source("ResetPrefixSample.java", source)
+    verb_prefix = [finding for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+    assert verb_prefix == []
+
+
+def test_stub_prefix_methods_are_allowed(analyzer):
+    source = """
+package fixtures.samples;
+
+class StubPrefixSample {
+    private void stubResponse(String key) {
+    }
+}
+"""
+    findings = analyzer.analyze_source("StubPrefixSample.java", source)
+    verb_prefix = [finding for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+    assert verb_prefix == []
+
+
 def test_domain_verbs_are_allowed(analyzer):
     summaries = violation_summaries(analyzer, "BadMethodNamesSample.java", "java-naming-method-verb-prefix")
     assert not any("synchronizeStatuses" in summary for summary in summaries)
