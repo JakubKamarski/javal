@@ -146,6 +146,14 @@ def test_constant_upper_snake_case_is_enforced(analyzer):
     assert any("defaultComparator" in summary for summary in summaries)
 
 
+def test_serial_version_uid_is_exempt_from_constant_upper_snake_case(analyzer):
+    findings = analyzer.analyze_file(FIXTURES_DIR / "SerializableEntitySample.java")
+    constant_findings = [
+        finding for finding in findings if finding.check == "java-naming-constant-upper-snake"
+    ]
+    assert constant_findings == []
+
+
 def test_value_by_key_variable_is_allowed(analyzer):
     findings = analyzer.analyze_file(BAD_VARIABLES)
     collection_findings = [

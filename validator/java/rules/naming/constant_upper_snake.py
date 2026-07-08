@@ -8,6 +8,7 @@ from validator.java.rules.base import JavaRule, RuleViolation
 from validator.java.rules.naming._support import NAMING_SUGGESTION
 
 _UPPER_SNAKE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
+_SERIAL_VERSION_UID = "serialVersionUID"
 
 
 class ConstantUpperSnakeCaseRule(JavaRule):
@@ -20,6 +21,8 @@ class ConstantUpperSnakeCaseRule(JavaRule):
 
         for variable in iter_variable_declarations(context):
             if not variable.is_constant:
+                continue
+            if variable.name == _SERIAL_VERSION_UID:
                 continue
             if _UPPER_SNAKE_PATTERN.fullmatch(variable.name):
                 continue
