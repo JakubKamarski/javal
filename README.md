@@ -202,7 +202,7 @@ Each rule is a dedicated `JavaRule` class:
 | `java-local-variable-no-var` | Local variables must use explicit types (`var` is forbidden) |
 | `java-testing-when-generic-variable` | `// WHEN` locals must be descriptive; warns on generic names like `result` |
 | `java-testing-duplicate-it-and-test` | Same subject has both `*Test` and `*IT` files in the repo — merge into the IT file (global scan; not limited to task-changed files) |
-| `java-testing-missing-test-class` | Production classes covered by testing rules must have the required `*IT` or `*Test` counterpart (task-changed `src/main/java` files; fixture layout in unit tests) |
+| `java-testing-missing-test-class` | Production classes covered by testing rules must have the required `*IT` or `*Test` counterpart (task-changed `src/main/java` files; fixture layout in unit tests). `*Repository` requires `*RepositoryIT` only when the task adds or changes a custom `@Query` method — derived query methods without `@Query` are excluded |
 | `git-uncommitted-changes` | Working tree has uncommitted changes — commit before finishing validation |
 | `liquibase-changeset-author` | ChangeSet `author` must match local `git config user.name` (task-introduced changeSets only — opening tag line in task diff) |
 

@@ -5,8 +5,10 @@ from validator.java.ast.imports import collect_identifier_usages, iter_import_de
 from validator.java.ast.methods import iter_method_declarations
 from validator.java.ast.modifiers import (
     has_query_annotation,
+    has_task_changed_query_method,
     is_abstract_top_level_type,
     is_public_top_level_type,
+    iter_query_method_declarations,
     node_has_annotation,
     node_has_modifier,
     top_level_type_name,
@@ -33,6 +35,8 @@ __all__ = [
     "VariableDeclaration",
     "collect_identifier_usages",
     "has_query_annotation",
+    "has_task_changed_query_method",
+    "iter_query_method_declarations",
     "is_abstract_top_level_type",
     "is_optional_type",
     "is_public_top_level_type",

@@ -28,7 +28,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-local-variable-no-var": "Local variables must use explicit types (var is forbidden)",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-duplicate-it-and-test": "Same subject has both *Test and *IT files in the repo",
-    "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart",
+    "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods",
 }
 
 RULE_MODULE_EXCLUDES = frozenset(

@@ -57,10 +57,26 @@ def is_abstract_top_level_type(context: JavaFileContext, type_name: str) -> bool
     return node_has_modifier(context, node, "abstract")
 
 
+def node_line_numbers(node) -> set[int]:
+    return set(range(node.start_point[0] + 1, node.end_point[0] + 2))
+
+
+def iter_query_method_declarations(context: JavaFileContext):
+    for node in context.walk("method_declaration"):
+        if node_has_annotation(context, node, "Query"):
+            yield node
+
+
 def has_query_annotation(context: JavaFileContext) -> bool:
-    for node in context.walk("marker_annotation", "annotation"):
-        text = context.text(node)
-        if text == "@Query" or text.startswith("@Query("):
+    return any(iter_query_method_declarations(context))
+
+
+def has_task_changed_query_method(context: JavaFileContext, changed_lines: set[int]) -> bool:
+    if not changed_lines:
+        return False
+
+    for method in iter_query_method_declarations(context):
+        if node_line_numbers(method) & changed_lines:
             return True
     return False
 

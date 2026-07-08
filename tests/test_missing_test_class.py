@@ -110,3 +110,72 @@ def test_analyze_java_tree_skips_preexisting_main_source_not_changed_in_task(tmp
     report = analyze_java_tree(tmp_path, task_id=task_id)
     findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
     assert findings == []
+
+
+def test_analyze_java_tree_flags_repository_when_task_adds_query_method(tmp_path):
+    task_id = "PLOG-9999"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+
+    main_dir = tmp_path / "src" / "main" / "java" / "demo"
+    main_dir.mkdir(parents=True)
+    (main_dir / "SampleShipmentRepository.java").write_text(
+        "package demo;\n\n"
+        "import org.springframework.data.jpa.repository.Query;\n"
+        "import org.springframework.data.repository.Repository;\n\n"
+        "public interface SampleShipmentRepository extends Repository<Object, Long> {\n\n"
+        '    @Query("select s from Object s where s.waybill = :waybill")\n'
+        "    Object findByWaybill(String waybill);\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Add repository with @Query")
+
+    report = analyze_java_tree(tmp_path, task_id=task_id)
+    findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
+    assert len(findings) == 1
+    assert findings[0].file.endswith("SampleShipmentRepository.java")
+    assert "SampleShipmentRepositoryIT" in findings[0].summary
+
+
+def test_analyze_java_tree_skips_repository_when_task_only_adds_derived_query(tmp_path):
+    task_id = "PLOG-9999"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+
+    main_dir = tmp_path / "src" / "main" / "java" / "demo"
+    main_dir.mkdir(parents=True)
+    repository = main_dir / "SampleShipmentRepository.java"
+    repository.write_text(
+        "package demo;\n\n"
+        "import org.springframework.data.jpa.repository.Query;\n"
+        "import org.springframework.data.repository.Repository;\n\n"
+        "public interface SampleShipmentRepository extends Repository<Object, Long> {\n\n"
+        '    @Query("select s from Object s where s.waybill = :waybill")\n'
+        "    Object findByWaybill(String waybill);\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "PLOG-1111 | Add repository with @Query")
+
+    repository.write_text(
+        "package demo;\n\n"
+        "import org.springframework.data.jpa.repository.Query;\n"
+        "import org.springframework.data.repository.Repository;\n\n"
+        "public interface SampleShipmentRepository extends Repository<Object, Long> {\n\n"
+        '    @Query("select s from Object s where s.waybill = :waybill")\n'
+        "    Object findByWaybill(String waybill);\n\n"
+        "    Object findByTrackingNumber(String trackingNumber);\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Add derived query method")
+
+    report = analyze_java_tree(tmp_path, task_id=task_id)
+    findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
+    assert findings == []

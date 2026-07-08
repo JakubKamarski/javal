@@ -5,6 +5,7 @@ from pathlib import Path
 from validator.git_scope import TaskScope
 from validator.java.ast import (
     has_query_annotation,
+    has_task_changed_query_method,
     is_abstract_top_level_type,
     is_public_top_level_type,
 )
@@ -62,13 +63,17 @@ class MissingTestClassRule(TreeJavaRule):
         findings: list[Finding] = []
 
         for source_path in _production_sources_to_check(java_files, scope):
-            finding = self._check_production_source(source_path)
+            finding = self._check_production_source(source_path, scope)
             if finding is not None:
                 findings.append(finding)
 
         return findings
 
-    def _check_production_source(self, source_path: Path) -> Finding | None:
+    def _check_production_source(
+        self,
+        source_path: Path,
+        scope: TaskScope | None = None,
+    ) -> Finding | None:
         class_name = source_path.stem
         requirement = subject_test_requirement(class_name)
         if requirement is None:
@@ -79,8 +84,13 @@ class MissingTestClassRule(TreeJavaRule):
             return None
         if requirement.requires_public_class and not is_public_top_level_type(context, class_name):
             return None
-        if requirement.requires_query_annotation and not has_query_annotation(context):
-            return None
+        if requirement.requires_query_annotation:
+            if not has_query_annotation(context):
+                return None
+            if scope is not None:
+                changed_lines = scope.changed_lines.get(str(source_path.resolve()), set())
+                if not has_task_changed_query_method(context, changed_lines):
+                    return None
 
         test_class_name = expected_test_class_name(class_name, requirement)
         expected_test_path = resolve_expected_test_path(source_path, test_class_name)
