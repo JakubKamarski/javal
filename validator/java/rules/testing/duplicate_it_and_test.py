@@ -3,26 +3,17 @@ from __future__ import annotations
 from pathlib import Path
 
 from validator.java.rules.base import TreeJavaRule
+from validator.java.rules.testing._support import (
+    integration_test_base_name,
+    unit_test_base_name,
+)
 from validator.report import Finding
 
-UNIT_TEST_SUFFIX = "Test"
-IT_SUFFIX = "IT"
-
-
-def unit_test_base_name(stem: str) -> str | None:
-    if not stem.endswith(UNIT_TEST_SUFFIX):
-        return None
-    if stem.endswith(f"{IT_SUFFIX}{UNIT_TEST_SUFFIX}"):
-        return None
-    base = stem[: -len(UNIT_TEST_SUFFIX)]
-    return base or None
-
-
-def integration_test_base_name(stem: str) -> str | None:
-    if not stem.endswith(IT_SUFFIX):
-        return None
-    base = stem[: -len(IT_SUFFIX)]
-    return base or None
+__all__ = [
+    "DuplicateItAndTestRule",
+    "integration_test_base_name",
+    "unit_test_base_name",
+]
 
 
 class DuplicateItAndTestRule(TreeJavaRule):

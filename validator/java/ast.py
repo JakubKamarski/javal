@@ -26,6 +26,20 @@ class VariableDeclaration:
 
 
 @dataclass(frozen=True)
+class LocalVariableDeclaration:
+    name: str
+    line: int
+    node: object
+    type_text: str
+
+
+@dataclass(frozen=True)
+class VarDeclaration:
+    name: str
+    line: int
+
+
+@dataclass(frozen=True)
 class ImportDeclaration:
     symbol: str
     line: int
@@ -125,7 +139,7 @@ def iter_method_declarations(context: JavaFileContext):
             node=node,
             is_configuration_bean=_is_configuration_bean_method(context, node),
             is_override=_node_has_annotation(context, node, "Override"),
-            is_test=_node_has_annotation(context, node, "Test"),
+            is_test=_node_has_annotation(context, node, "Test", "ParameterizedTest"),
             is_record_accessor=_is_record_accessor_method(context, node),
         )
 
@@ -163,6 +177,106 @@ def _descendants(node):
 def _is_constant_field(context: JavaFileContext, node) -> bool:
     text = context.text(node)
     return "static" in text and "final" in text
+
+
+def _uses_var_type(context: JavaFileContext, node) -> bool:
+    for child in node.children:
+        if child.type == "type_identifier" and context.text(child) == "var":
+            return True
+    return False
+
+
+def _identifier_name_and_line(context: JavaFileContext, node) -> tuple[str, int] | None:
+    identifier = next((child for child in node.children if child.type == "identifier"), None)
+    if identifier is None:
+        return None
+    return context.text(identifier), identifier.start_point[0] + 1
+
+
+def iter_var_declarations(context: JavaFileContext):
+    for node in context.walk("local_variable_declaration"):
+        if not _uses_var_type(context, node):
+            continue
+        for name, line in _variable_names(context, node):
+            yield VarDeclaration(name=name, line=line)
+
+    for node_type in ("resource", "enhanced_for_statement"):
+        for node in context.walk(node_type):
+            if not _uses_var_type(context, node):
+                continue
+            name_and_line = _identifier_name_and_line(context, node)
+            if name_and_line is None:
+                continue
+            name, line = name_and_line
+            yield VarDeclaration(name=name, line=line)
+
+
+def _declaration_type_text(context: JavaFileContext, node) -> str:
+    for child in node.children:
+        if child.type in (
+            "type_identifier",
+            "generic_type",
+            "scoped_type_identifier",
+            "array_type",
+            "integral_type",
+            "floating_point_type",
+            "boolean_type",
+        ):
+            return context.text(child)
+    return ""
+
+
+def is_optional_type(type_text: str) -> bool:
+    normalized = type_text.strip()
+    if not normalized:
+        return False
+    return normalized == "Optional" or normalized.startswith("Optional<") or normalized.endswith(".Optional<")
+
+
+def iter_local_variable_declarations(context: JavaFileContext):
+    for node in context.walk("local_variable_declaration"):
+        type_text = _declaration_type_text(context, node)
+        for name, line in _variable_names(context, node):
+            yield LocalVariableDeclaration(
+                name=name,
+                line=line,
+                node=node,
+                type_text=type_text,
+            )
+
+
+def parse_gwt_section_line_ranges(context: JavaFileContext, method_node) -> dict[str, tuple[int, int]]:
+    block = next((child for child in method_node.children if child.type == "block"), None)
+    if block is None:
+        return {}
+
+    markers: list[tuple[str, int]] = []
+    for node in block.children:
+        if node.type != "line_comment":
+            continue
+        label = context.text(node).strip().removeprefix("//").strip().upper()
+        if label in {"GIVEN", "WHEN", "THEN"}:
+            markers.append((label, node.start_point[0] + 1))
+
+    if not markers:
+        return {}
+
+    method_end_line = method_node.end_point[0] + 1
+    sections: dict[str, tuple[int, int]] = {}
+    for index, (label, marker_line) in enumerate(markers):
+        start_line = marker_line + 1
+        if index + 1 < len(markers):
+            end_line = markers[index + 1][1] - 1
+        else:
+            end_line = method_end_line - 1
+        sections[label] = (start_line, end_line)
+
+    return sections
+
+
+def line_in_range(line: int, line_range: tuple[int, int]) -> bool:
+    start_line, end_line = line_range
+    return start_line <= line <= end_line
 
 
 def iter_variable_declarations(context: JavaFileContext):
