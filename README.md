@@ -4,6 +4,8 @@ Java validator CLI (`javal`) for task-scoped static analysis. Validates **only J
 
 Complements [me-ai-coder](https://github.com/JakubKamarski/ai-coder) (rules, skills, specs).
 
+**Architecture, concepts, and assumptions:** see [spec.md](spec.md).
+
 ## Workspace placement
 
 Keep this repo under the workspace `projects/` folder:
@@ -215,6 +217,8 @@ Testing structure rules follow `agents/rule-testing.md` from the workspace rules
 
 ## Development
 
+See [spec.md](spec.md) for architecture, rule contracts, applicability, and extension points.
+
 ```bash
 pip install -r requirements.txt
 pytest
@@ -233,6 +237,8 @@ Fixture samples under `fixtures/` support unit tests. Task-scoped behaviour is c
 When adding a rule, add a **minimal anonymized** fixture plus pytest coverage — not a trimmed copy of a task worktree file.
 
 ## Adding a rule
+
+See [spec.md — Adding a rule](spec.md#adding-a-rule) for the full workflow. Summary:
 
 1. Copy [`validator/java/rules/_template.py`](validator/java/rules/_template.py) as a starting point.
 2. Create `validator/java/rules/<category>/<rule_name>.py` implementing `JavaRule` or `TreeJavaRule`.
