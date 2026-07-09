@@ -13,7 +13,7 @@ def _git(repo: Path, *args: str) -> None:
 
 
 def test_analyze_java_tree_skips_internal_service_when_facade_it_exists(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")

@@ -79,7 +79,7 @@ def _init_repo_with_changelog_commit(repo: Path, task_id: str) -> None:
 
 
 def test_analyze_repo_flags_wrong_author_on_new_changeset(tmp_path):
-    task_id = "PLOG-8888"
+    task_id = "ABC-8888"
     _init_repo_with_changelog_commit(tmp_path, task_id)
 
     report = analyze_repo(tmp_path, task_id=task_id)
@@ -112,7 +112,7 @@ def _init_repo_with_preexisting_changeset(repo: Path, task_id: str) -> None:
         encoding="utf-8",
     )
     _git(repo, "add", ".")
-    _git(repo, "commit", "-m", "PLOG-5162 | Add sample table")
+    _git(repo, "commit", "-m", "ABC-5162 | Add sample table")
 
     (changelog_dir / "app-db-changelog.xml").write_text(
         "<databaseChangeLog>\n"
@@ -132,7 +132,7 @@ def _init_repo_with_preexisting_changeset(repo: Path, task_id: str) -> None:
 
 
 def test_skips_author_on_preexisting_changeset(tmp_path):
-    task_id = "PLOG-5164"
+    task_id = "ABC-5164"
     _init_repo_with_preexisting_changeset(tmp_path, task_id)
 
     report = analyze_repo(tmp_path, task_id=task_id)
@@ -144,7 +144,7 @@ def test_skips_author_on_preexisting_changeset(tmp_path):
 
 
 def test_flags_author_when_opening_tag_changed(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -184,7 +184,7 @@ def test_flags_author_when_opening_tag_changed(tmp_path):
 
 
 def test_accepts_changeset_author_matching_commit_author_not_local_git_config(tmp_path):
-    task_id = "PLOG-5130"
+    task_id = "ABC-5130"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "jakub@example.com")
     _git(tmp_path, "config", "user.name", "Jakub Kamarski")
@@ -224,7 +224,7 @@ def test_accepts_changeset_author_matching_commit_author_not_local_git_config(tm
 
 
 def test_flags_wrong_author_on_uncommitted_changeset_using_local_git_config(tmp_path):
-    task_id = "PLOG-7777"
+    task_id = "ABC-7777"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")

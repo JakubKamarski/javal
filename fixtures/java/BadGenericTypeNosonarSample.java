@@ -1,13 +1,13 @@
 package fixtures.java;
 
-public class BadGenericTypeNosonarSample<ShipmentStatusT> {
+public class BadGenericTypeNosonarSample<RecordStatusT> {
 }
 
-interface BadGenericTypeNosonarInterface<GroupKeyT> {
+interface BadGenericTypeNosonarInterface<BatchKeyT> {
 }
 
-public record BadGenericTypeNosonarRecord<TrackableItemT>(String id) {
+public record BadGenericTypeNosonarRecord<ItemRecordT>(String id) {
 }
 
-class BadMixedGenericTypeNosonarSample<T, ShipmentStatusT> {
+class BadMixedGenericTypeNosonarSample<T, RecordStatusT> {
 }

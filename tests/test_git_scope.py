@@ -32,7 +32,7 @@ index 1111111..2222222 100644
 
 
 def test_validate_task_id_accepts_standard_format():
-    assert validate_task_id("PLOG-5164") == "PLOG-5164"
+    assert validate_task_id("ABC-5164") == "ABC-5164"
 
 
 def test_validate_task_id_rejects_invalid_format():
@@ -85,7 +85,7 @@ def _init_repo_with_task_commit(repo: Path, task_id: str) -> None:
 
 
 def test_build_task_scope_collects_only_task_commit_lines(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _init_repo_with_task_commit(tmp_path, task_id)
 
     scope = build_task_scope(tmp_path, task_id)
@@ -98,7 +98,7 @@ def test_build_task_scope_collects_only_task_commit_lines(tmp_path):
 
 
 def test_analyze_java_tree_reports_only_task_changed_lines(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _init_repo_with_task_commit(tmp_path, task_id)
 
     report = analyze_java_tree(tmp_path, task_id=task_id)

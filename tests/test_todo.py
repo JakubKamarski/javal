@@ -85,10 +85,10 @@ def test_parse_args_routes_to_todo_subcommand():
 
 
 def test_parse_args_routes_to_validate_by_default():
-    args = parse_args(["PLOG-5164", "."])
+    args = parse_args(["ABC-5164", "."])
 
     assert args.command == "validate"
-    assert args.task_id == "PLOG-5164"
+    assert args.task_id == "ABC-5164"
     assert args.repo_path == Path(".")
 
 

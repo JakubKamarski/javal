@@ -80,7 +80,7 @@ def _git(repo: Path, *args: str) -> None:
 
 
 def test_analyze_java_tree_reports_missing_test_for_task_changed_main_source(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -102,7 +102,7 @@ def test_analyze_java_tree_reports_missing_test_for_task_changed_main_source(tmp
 
 
 def test_analyze_java_tree_skips_preexisting_main_source_not_changed_in_task(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -114,7 +114,7 @@ def test_analyze_java_tree_skips_preexisting_main_source_not_changed_in_task(tmp
         encoding="utf-8",
     )
     _git(tmp_path, "add", ".")
-    _git(tmp_path, "commit", "-m", "PLOG-1111 | Add facade without IT")
+    _git(tmp_path, "commit", "-m", "ABC-1111 | Add facade without IT")
 
     unrelated = tmp_path / "src" / "main" / "java" / "demo" / "Other.java"
     unrelated.write_text("package demo;\n\nclass Other {\n}\n", encoding="utf-8")
@@ -127,7 +127,7 @@ def test_analyze_java_tree_skips_preexisting_main_source_not_changed_in_task(tmp
 
 
 def test_analyze_java_tree_flags_repository_when_task_adds_query_method(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -155,7 +155,7 @@ def test_analyze_java_tree_flags_repository_when_task_adds_query_method(tmp_path
 
 
 def test_analyze_java_tree_skips_repository_when_task_only_adds_derived_query(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -174,7 +174,7 @@ def test_analyze_java_tree_skips_repository_when_task_only_adds_derived_query(tm
         encoding="utf-8",
     )
     _git(tmp_path, "add", ".")
-    _git(tmp_path, "commit", "-m", "PLOG-1111 | Add repository with @Query")
+    _git(tmp_path, "commit", "-m", "ABC-1111 | Add repository with @Query")
 
     repository.write_text(
         "package demo;\n\n"

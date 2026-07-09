@@ -75,13 +75,13 @@ def test_tree_rules_declare_scope_policy():
 
 
 def test_report_merge_combines_checks_and_findings():
-    first = Report(target="/repo", task_id="PLOG-1")
+    first = Report(target="/repo", task_id="ABC-1")
     first.add_check("rule-a")
     first.add_finding(
         Finding(severity="warning", check="rule-a", summary="first", file="/repo/A.java", line=1)
     )
 
-    second = Report(target="/repo", task_id="PLOG-1")
+    second = Report(target="/repo", task_id="ABC-1")
     second.add_check("rule-b")
     second.add_finding(
         Finding(severity="warning", check="rule-b", summary="second", file="/repo/B.java", line=2)
@@ -103,7 +103,7 @@ def test_analyze_repo_accepts_prebuilt_scope(monkeypatch, tmp_path):
     monkeypatch.setattr("validator.analyze.build_task_scope", fake_build_scope)
 
     scope = TaskScope(
-        task_id="PLOG-9999",
+        task_id="ABC-9999",
         commits=(),
         changed_lines={},
         line_authors={},
@@ -112,7 +112,7 @@ def test_analyze_repo_accepts_prebuilt_scope(monkeypatch, tmp_path):
     report = analyze_repo(tmp_path, scope=scope, analyzers=(StubAnalyzer(),))
 
     assert calls == []
-    assert report.task_id == "PLOG-9999"
+    assert report.task_id == "ABC-9999"
 
 
 def test_analyze_repo_builds_scope_from_task_id_when_missing(monkeypatch, tmp_path):
@@ -124,7 +124,7 @@ def test_analyze_repo_builds_scope_from_task_id_when_missing(monkeypatch, tmp_pa
 
     monkeypatch.setattr("validator.analyze.build_task_scope", fake_build_scope)
 
-    report = analyze_repo(tmp_path, task_id="PLOG-1000", analyzers=(StubAnalyzer(),))
+    report = analyze_repo(tmp_path, task_id="ABC-1000", analyzers=(StubAnalyzer(),))
 
-    assert calls == ["PLOG-1000"]
-    assert report.task_id == "PLOG-1000"
+    assert calls == ["ABC-1000"]
+    assert report.task_id == "ABC-1000"

@@ -8,7 +8,7 @@ public class GoodCommentSample {
         return 0; // NOSONAR: intentional stub
     }
 
-    // PLOG-1234 TODO: replace stub implementation
+    // ABC-1234 TODO: replace stub implementation
     void plannedWork() {
     }
 

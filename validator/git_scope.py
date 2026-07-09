@@ -29,7 +29,7 @@ class TaskScope:
 def validate_task_id(task_id: str) -> str:
     normalized = task_id.strip()
     if not TASK_ID_PATTERN.fullmatch(normalized):
-        raise ValueError(f"Invalid task id '{task_id}'. Expected format like PLOG-5164.")
+        raise ValueError(f"Invalid task id '{task_id}'. Expected format like ABC-1234.")
     return normalized
 
 

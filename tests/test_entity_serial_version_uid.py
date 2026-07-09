@@ -55,7 +55,7 @@ def test_entity_ast_detects_persistent_fields_and_serial_version_uid():
 
 
 def test_flags_entity_when_persistent_field_changes_without_serial_version_uid_update(tmp_path):
-    task_id = "PLOG-8888"
+    task_id = "ABC-8888"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -79,7 +79,7 @@ def test_flags_entity_when_persistent_field_changes_without_serial_version_uid_u
 
 
 def test_passes_when_serial_version_uid_is_updated_with_field_change(tmp_path):
-    task_id = "PLOG-8888"
+    task_id = "ABC-8888"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -101,7 +101,7 @@ def test_passes_when_serial_version_uid_is_updated_with_field_change(tmp_path):
 
 
 def test_ignores_method_only_entity_changes(tmp_path):
-    task_id = "PLOG-8888"
+    task_id = "ABC-8888"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -150,7 +150,7 @@ def test_ignores_method_only_entity_changes(tmp_path):
 
 
 def test_flags_uncommitted_persistent_field_change_without_serial_version_uid_update(tmp_path):
-    task_id = "PLOG-8888"
+    task_id = "ABC-8888"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -172,7 +172,7 @@ def test_flags_uncommitted_persistent_field_change_without_serial_version_uid_up
 
 
 def test_flags_missing_serial_version_uid_when_persistent_field_changes(tmp_path):
-    task_id = "PLOG-8888"
+    task_id = "ABC-8888"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -230,9 +230,9 @@ def test_rule_directly_flags_missing_serial_version_uid(tmp_path):
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
     _git(tmp_path, "add", ".")
-    _git(tmp_path, "commit", "-m", "PLOG-8888 | Add entity")
+    _git(tmp_path, "commit", "-m", "ABC-8888 | Add entity")
 
-    scope = build_task_scope(tmp_path, "PLOG-8888")
+    scope = build_task_scope(tmp_path, "ABC-8888")
     analyzer = JavaAnalyzer(tree_rules=[EntitySerialVersionUidOnChangeRule()])
     report = analyzer.analyze_tree(tmp_path, scope=scope)
     findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]

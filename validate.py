@@ -12,10 +12,10 @@ from validator.todo import append_todo
 
 VALIDATE_EPILOG = (
     "Examples:\n"
-    "  javal PLOG-5164\n"
-    "  javal PLOG-5164 .\n"
-    "  javal PLOG-5164 projects/locus-fc-orlen\n"
-    "  javal PLOG-5164 --format task worktrees/PLOG-5164/locus-fc-orlen\n"
+    "  javal ABC-1234\n"
+    "  javal ABC-1234 .\n"
+    "  javal ABC-1234 projects/sample-service\n"
+    "  javal ABC-1234 --format task <repo-path>\n"
     "\n"
     "Report validator issues (AI agents):\n"
     "  javal todo --file <path> --line <n> --description \"<issue>\"\n"
@@ -64,7 +64,7 @@ def parse_validate_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "task_id",
-        help="Task id used in commit messages (e.g. PLOG-5164).",
+        help="Task id used in commit messages (e.g. ABC-1234).",
     )
     parser.add_argument(
         "repo_path",

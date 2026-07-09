@@ -1,8 +1,8 @@
 package fixtures.java;
 
-public interface BadGenericMethodNosonarSample<GroupKeyT> { // NOSONAR: descriptive business generic name is clearer than a single-letter type parameter.
+public interface BadGenericMethodNosonarSample<BatchKeyT> { // NOSONAR: descriptive business generic name is clearer than a single-letter type parameter.
 
-    static <GroupKeyT> BadGenericMethodNosonarSample<GroupKeyT> createNoOp() {
+    static <BatchKeyT> BadGenericMethodNosonarSample<BatchKeyT> createNoOp() {
         return null;
     }
 }

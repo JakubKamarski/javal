@@ -68,7 +68,7 @@ def test_analyze_repo_reports_uncommitted_changes(tmp_path):
     _init_clean_repo(tmp_path)
     (tmp_path / "draft.txt").write_text("wip", encoding="utf-8")
 
-    report = analyze_repo(tmp_path, task_id="PLOG-9999")
+    report = analyze_repo(tmp_path, task_id="ABC-9999")
 
     findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
     assert len(findings) == 1
@@ -77,7 +77,7 @@ def test_analyze_repo_reports_uncommitted_changes(tmp_path):
 def test_analyze_repo_skips_uncommitted_warning_on_clean_repo(tmp_path):
     _init_clean_repo(tmp_path)
 
-    report = analyze_repo(tmp_path, task_id="PLOG-9999")
+    report = analyze_repo(tmp_path, task_id="ABC-9999")
 
     findings = [finding for finding in report.findings if finding.check == CHECK_ID]
     assert findings == []

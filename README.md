@@ -16,7 +16,7 @@ Clone name may vary; locate the repo by `validate.py` and `install.sh` at the re
 
 ## Install
 
-Same pattern as `luv` (`locus-update-version`):
+Same pattern as a workspace version-bump helper (`sample-version-tool`):
 
 ```bash
 ./install.sh
@@ -38,7 +38,7 @@ javal <TASK-ID> [repo-path]
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `TASK-ID` | yes | Task id used in commit messages (e.g. `PLOG-5164`) |
+| `TASK-ID` | yes | Task id used in commit messages (e.g. `ABC-1234`) |
 | `repo-path` | no | Repository to analyze. Defaults to the **current working directory** |
 
 `repo-path` may be absolute or relative to the shell cwd.
@@ -47,32 +47,32 @@ javal <TASK-ID> [repo-path]
 
 ```bash
 # Analyze current directory (e.g. inside a worktree checkout)
-javal PLOG-5164
+javal ABC-1234
 
 # Explicit current directory
-javal PLOG-5164 .
+javal ABC-1234 .
 
 # Relative path from workspace root
-javal PLOG-5164 projects/locus-fc-orlen
+javal ABC-1234 projects/sample-service
 
 # Worktree path
-javal PLOG-5164 worktrees/PLOG-5164/locus-fc-orlen
+javal ABC-1234 <repo-path>
 
 # Task-file todo output
-javal PLOG-5164 --format task
+javal ABC-1234 --format task
 
 # Human-friendly relative paths
-javal PLOG-5164 --path-format relative
+javal ABC-1234 --path-format relative
 
 # Filename-only paths
-javal PLOG-5164 --path-format filename
+javal ABC-1234 --path-format filename
 
 # Markdown report
-javal PLOG-5164 --format markdown worktrees/PLOG-5164/locus-fc-orlen
+javal ABC-1234 --format markdown <repo-path>
 
 # Report a false-positive or validator bug (AI agents)
 javal todo \
-  --file /Users/you/work/projects/locus-fc-orlen/src/Foo.java \
+  --file <absolute-path>/src/Foo.java \
   --line 42 \
   --description "False positive: unused-imports — Set is used via static import"
 ```
@@ -95,11 +95,11 @@ javal todo \
 <TASK-ID> |
 ```
 
-Examples that match `PLOG-5164`:
+Examples that match `ABC-1234`:
 
-- `PLOG-5164 | Add tracking scheduler`
-- `PLOG-5164 | HOTFIX | Fix null handling`
-- `PLOG-5164 | Validation fixes`
+- `ABC-1234 | Add tracking scheduler`
+- `ABC-1234 | HOTFIX | Fix null handling`
+- `ABC-1234 | Validation fixes`
 
 From those commits it collects **added and modified line numbers** in `.java` files and runs rules only on those lines.
 
@@ -114,7 +114,7 @@ Lines untouched by the task are ignored, even if they violate a rule.
 One invalid finding per line:
 
 ```text
-/Users/you/work/projects/locus-fc-orlen/src/main/java/File.java|42|Unused import 'Set'
+<absolute-path>/src/main/java/File.java|42|Unused import 'Set'
 ```
 
 Paths are **absolute** by default (for agents and tooling). Use `--path-format relative` or `--path-format filename` for shorter human-readable output.
@@ -124,11 +124,11 @@ Paths are **absolute** by default (for agents and tooling). Use `--path-format r
 For the task file **Validation Findings** section:
 
 ```bash
-javal PLOG-5164 --format task
+javal ABC-1234 --format task
 ```
 
 ```markdown
-- [ ] `/Users/you/work/projects/locus-fc-orlen/src/main/java/File.java:42` — Unused import 'Set'
+- [ ] `<absolute-path>/src/main/java/File.java:42` — Unused import 'Set'
 ```
 
 ### Exit codes
@@ -178,7 +178,7 @@ Run `javal todo --help` for full flag reference.
 
 ```bash
 javal todo \
-  --file /Users/you/work/projects/locus-fc-orlen/src/main/java/Foo.java \
+  --file <absolute-path>/src/main/java/Foo.java \
   --line 42 \
   --description "False positive: unused-imports — Set is used via static import"
 ```
@@ -209,6 +209,7 @@ Each rule is a dedicated `JavaRule` class:
 | `git-uncommitted-changes` | Working tree has uncommitted changes — commit before finishing validation |
 | `liquibase-changeset-author` | ChangeSet `author` must match the introducing task commit author; uncommitted changeSets use local `git config user.name` (task-introduced or uncommitted changeSets only — opening tag line in task diff or working tree) |
 
+Fixture and test-data rules also follow `agents/rule-sanitize.md` from the workspace rules repo.
 Naming rules follow `agents/rule-java-naming.md` from the workspace rules repo.
 Testing structure rules follow `agents/rule-testing.md` from the workspace rules repo.
 
@@ -225,9 +226,9 @@ Fixture samples under `fixtures/` support unit tests. Task-scoped behaviour is c
 
 - **Minimal**: Include only the smallest snippet that reproduces the behaviour under test.
 - **Anonymized**: Use generic names (`Sample*`, `item-a`, `demo` packages). Never copy production classes, packages, waybills, or integration stacks from real repos.
-- **Self-contained**: Keep data inside `fixtures/`; do not reference worktrees, `projects/locus-*`, or absolute paths to implementation repos in fixtures or pytest.
-- **No production IT clones**: Do not paste WireMock/Spring/DB-heavy IT bodies into fixtures; model the parser/rule edge case with a few lines instead.
-- **Guarded**: `tests/test_fixture_conventions.py` enforces the banned-pattern list; extend it when a new leak pattern appears.
+- **Self-contained**: Keep data inside `fixtures/`; do not reference worktrees, `projects/sample-service`, or absolute paths to implementation repos in fixtures or pytest.
+- **No production IT clones**: Do not paste mock-HTTP/Spring/DB-heavy IT bodies into fixtures; model the parser/rule edge case with a few lines instead.
+- **Guarded**: `tests/test_fixture_conventions.py` and `tests/test_repo_sanitization.py` enforce banned patterns; extend `tests/sanitization_patterns.py` when a new leak appears.
 
 When adding a rule, add a **minimal anonymized** fixture plus pytest coverage — not a trimmed copy of a task worktree file.
 

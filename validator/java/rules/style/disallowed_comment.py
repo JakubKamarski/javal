@@ -4,7 +4,7 @@ from validator.java.ast.comments import is_allowed_comment, is_orphan_todo_fixme
 from validator.java.context import JavaFileContext
 from validator.java.rules.base import JavaRule, RuleViolation
 
-_ORPHAN_TODO_SUGGESTION = "Reference a task ID (e.g. PLOG-1234) in TODO/FIXME comments."
+_ORPHAN_TODO_SUGGESTION = "Reference a task ID (e.g. ABC-1234) in TODO/FIXME comments."
 _DISALLOWED_COMMENT_SUGGESTION = (
     "Remove explanatory comments; keep code self-explanatory or use an approved exception "
     "(NOSONAR, deprecation note, public API javadoc, GWT marker, task-referenced TODO/FIXME). "

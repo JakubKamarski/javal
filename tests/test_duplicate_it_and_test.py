@@ -94,7 +94,7 @@ def _init_repo_with_preexisting_duplicate_pair(repo: Path) -> None:
 
 
 def test_analyze_java_tree_reports_duplicate_pair_for_task_changed_test(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _init_repo_with_duplicate_test_pair(tmp_path, task_id)
 
     report = analyze_java_tree(tmp_path, task_id=task_id)
@@ -105,7 +105,7 @@ def test_analyze_java_tree_reports_duplicate_pair_for_task_changed_test(tmp_path
 
 
 def test_analyze_java_tree_flags_preexisting_pair_when_task_adds_it_after_unit_test(tmp_path):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -117,7 +117,7 @@ def test_analyze_java_tree_flags_preexisting_pair_when_task_adds_it_after_unit_t
         encoding="utf-8",
     )
     _git(tmp_path, "add", ".")
-    _git(tmp_path, "commit", "-m", "PLOG-1111 | Add unit test from earlier task")
+    _git(tmp_path, "commit", "-m", "ABC-1111 | Add unit test from earlier task")
 
     (test_dir / "SampleTrackerServiceIT.java").write_text(
         "package demo;\n\nclass SampleTrackerServiceIT {\n}\n",
@@ -136,7 +136,7 @@ def test_analyze_java_tree_flags_preexisting_pair_when_task_adds_it_after_unit_t
 def test_analyze_java_tree_flags_preexisting_pair_globally_even_when_task_touches_unrelated_file(
     tmp_path,
 ):
-    task_id = "PLOG-9999"
+    task_id = "ABC-9999"
     _init_repo_with_preexisting_duplicate_pair(tmp_path)
 
     unrelated = tmp_path / "src" / "main" / "java" / "demo" / "Other.java"
