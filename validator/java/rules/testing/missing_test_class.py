@@ -20,7 +20,7 @@ from validator.java.rules.testing._support import (
     resolve_expected_test_path,
     subject_test_requirement,
 )
-from validator.java.rules.testing.injection_coverage import (
+from validator.java.rules.testing._injection_coverage import (
     build_injected_by_index,
     is_covered_by_ancestor_it,
     production_class_paths,
