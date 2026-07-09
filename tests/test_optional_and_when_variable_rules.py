@@ -3,7 +3,7 @@ from __future__ import annotations
 from tests.conftest import FIXTURES_DIR, violation_summaries
 
 OPTIONAL_FIXTURE = FIXTURES_DIR / "BadOptionalLocalVariableSample.java"
-WHEN_FIXTURE = FIXTURES_DIR / "BadTestWhenVariableSample.java"
+WHEN_FIXTURE = FIXTURES_DIR / "BadTestWhenVariableSampleTest.java"
 CLEAN = FIXTURES_DIR / "CleanService.java"
 
 
@@ -36,7 +36,7 @@ def test_clean_service_has_no_optional_prefix_violations(analyzer):
 def test_generic_when_variable_is_flagged(analyzer):
     summaries = violation_summaries(
         analyzer,
-        "BadTestWhenVariableSample.java",
+        "BadTestWhenVariableSampleTest.java",
         "java-testing-when-generic-variable",
     )
     assert any("result" in summary for summary in summaries)
@@ -46,7 +46,7 @@ def test_generic_when_variable_is_flagged(analyzer):
 def test_descriptive_when_variable_is_allowed(analyzer):
     summaries = violation_summaries(
         analyzer,
-        "BadTestWhenVariableSample.java",
+        "BadTestWhenVariableSampleTest.java",
         "java-testing-when-generic-variable",
     )
     assert all("shipmentStatus" not in summary for summary in summaries)
@@ -55,7 +55,7 @@ def test_descriptive_when_variable_is_allowed(analyzer):
 def test_test_without_when_section_is_ignored(analyzer):
     summaries = violation_summaries(
         analyzer,
-        "BadTestWhenVariableSample.java",
+        "BadTestWhenVariableSampleTest.java",
         "java-testing-when-generic-variable",
     )
     assert all("checkStatusWithoutSections" not in summary for summary in summaries)

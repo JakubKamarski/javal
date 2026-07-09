@@ -44,6 +44,7 @@ RULE_MODULE_EXCLUDES = frozenset(
         "__init__.py",
         "_support.py",
         "_template.py",
+        "applicability.py",
         "base.py",
         "registry.py",
     }
@@ -61,6 +62,8 @@ def enrich_meta(rule: JavaRule | TreeJavaRule) -> RuleMeta:
         description=description,
         scope=base.scope,
         tree_scope=base.tree_scope,
+        file_applicability=base.file_applicability,
+        tree_file_applicability=base.tree_file_applicability,
     )
 
 

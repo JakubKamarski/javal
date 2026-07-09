@@ -10,8 +10,8 @@ from validator.java.ast.entities import (
     serial_version_uid_lines,
 )
 from validator.java.context import JavaFileContext
+from validator.java.rules.applicability import context_for
 from validator.java.rules.base import TreeJavaRule
-from validator.java.rules.testing._support import is_main_source_file, is_test_source_file
 from validator.report import Finding
 
 SUGGESTION = (
@@ -25,7 +25,7 @@ def _worktree_changed_lines(file_path: Path, repo_root: Path) -> set[int]:
     return collect_worktree_changed_lines(repo_root).get(absolute_path, set())
 
 
-def _production_entity_sources_to_check(
+def _entity_sources_to_check(
     java_files: list[Path],
     scope: TaskScope,
     repo_root: Path,
@@ -39,21 +39,13 @@ def _production_entity_sources_to_check(
     return [
         path
         for path in java_files
-        if _is_checkable_production_source(path)
-        and (str(path.resolve()) in changed_paths or str(path.resolve()) in worktree_paths)
+        if str(path.resolve()) in changed_paths or str(path.resolve()) in worktree_paths
     ]
-
-
-def _is_checkable_production_source(path: Path) -> bool:
-    if is_test_source_file(path):
-        return False
-    if is_main_source_file(path):
-        return True
-    return "src" not in path.resolve().parts
 
 
 class EntitySerialVersionUidOnChangeRule(TreeJavaRule):
     scope_policy = "task_changed"
+    tree_file_applicability = "production"
 
     @property
     def check_id(self) -> str:
@@ -63,6 +55,8 @@ class EntitySerialVersionUidOnChangeRule(TreeJavaRule):
         self,
         java_files: list[Path],
         scope: TaskScope | None = None,
+        *,
+        contexts: dict[str, JavaFileContext] | None = None,
     ) -> list[Finding]:
         if scope is None or not scope.commits:
             return []
@@ -73,8 +67,11 @@ class EntitySerialVersionUidOnChangeRule(TreeJavaRule):
         repo_root = resolve_git_repo_root(java_files[0])
         findings: list[Finding] = []
         reported: set[tuple[str, str]] = set()
-        for source_path in _production_entity_sources_to_check(java_files, scope, repo_root):
-            context = JavaFileContext.from_path(source_path)
+        for source_path in _entity_sources_to_check(java_files, scope, repo_root):
+            context = context_for(source_path, contexts)
+            if "@Entity" not in context.source:
+                continue
+
             absolute_path = str(source_path.resolve())
             for entity in iter_jpa_entity_class_declarations(context):
                 class_name = entity_class_name(context, entity)

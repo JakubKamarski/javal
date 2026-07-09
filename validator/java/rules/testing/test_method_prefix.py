@@ -108,6 +108,8 @@ def _method_under_test_from_when(context: JavaFileContext, method_node, when_ran
 
 
 class TestMethodPrefixRule(JavaRule):
+    file_applicability = "test"
+
     @property
     def check_id(self) -> str:
         return "java-testing-test-method-prefix"

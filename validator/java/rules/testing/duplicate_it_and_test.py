@@ -19,12 +19,20 @@ __all__ = [
 
 class DuplicateItAndTestRule(TreeJavaRule):
     scope_policy = "global"
+    tree_file_applicability = "test"
 
     @property
     def check_id(self) -> str:
         return "java-testing-duplicate-it-and-test"
 
-    def apply_tree(self, java_files: list[Path], scope=None) -> list[Finding]:
+    def apply_tree(
+        self,
+        java_files: list[Path],
+        scope=None,
+        *,
+        contexts=None,
+    ) -> list[Finding]:
+        del scope, contexts
         unit_tests: dict[tuple[Path, str], Path] = {}
         integration_tests: dict[tuple[Path, str], Path] = {}
 

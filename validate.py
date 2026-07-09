@@ -151,7 +151,10 @@ def run_list_rules(args: argparse.Namespace) -> int:
         scope = meta.scope
         if meta.tree_scope:
             scope = f"{scope}/{meta.tree_scope}"
-        print(f"{meta.check_id}\t{scope}\t{meta.description}")
+        applicability = meta.file_applicability
+        if meta.scope == "tree":
+            applicability = meta.tree_file_applicability
+        print(f"{meta.check_id}\t{scope}\t{applicability}\t{meta.description}")
     return 0
 
 

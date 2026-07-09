@@ -6,6 +6,7 @@ from validator.analyzer_base import allowed_lines_for, changed_files_in_scope, e
 from validator.discovery import discover_files
 from validator.git_scope import TaskScope, build_task_scope
 from validator.java.context import JavaFileContext
+from validator.java.rules.applicability import filter_paths, matches_file_applicability
 from validator.java.rules.base import JavaRule, TreeJavaRule
 from validator.java.rules.registry import default_java_rules, default_tree_java_rules
 from validator.report import Finding, Report
@@ -19,6 +20,7 @@ class JavaAnalyzer:
     ) -> None:
         self._rules = rules if rules is not None else default_java_rules()
         self._tree_rules = tree_rules if tree_rules is not None else default_tree_java_rules()
+        self._context_cache: dict[str, JavaFileContext] = {}
 
     @property
     def rules(self) -> list[JavaRule]:
@@ -33,13 +35,16 @@ class JavaAnalyzer:
 
     def analyze_source(self, path: str, source: str) -> list[Finding]:
         context = JavaFileContext.from_source(path, source)
+        self._store_context(context)
         return self._apply_rules(context)
 
     def analyze_file(self, file_path: Path) -> list[Finding]:
-        context = JavaFileContext.from_path(file_path)
+        context = self._get_or_load_context(file_path)
         return self._apply_rules(context)
 
     def analyze_tree(self, target: Path, scope: TaskScope | None = None) -> Report:
+        self._context_cache.clear()
+
         report = Report(
             target=str(target.resolve()),
             task_id=scope.task_id if scope else "",
@@ -108,10 +113,29 @@ class JavaAnalyzer:
 
         return report
 
+    def _store_context(self, context: JavaFileContext) -> None:
+        absolute_path = str(Path(context.path).resolve())
+        self._context_cache[absolute_path] = context
+
+    def _get_or_load_context(self, file_path: Path) -> JavaFileContext:
+        absolute_path = str(file_path.resolve())
+        cached = self._context_cache.get(absolute_path)
+        if cached is not None:
+            return cached
+
+        context = JavaFileContext.from_path(file_path)
+        self._context_cache[absolute_path] = context
+        return context
+
     def _apply_rules(self, context: JavaFileContext) -> list[Finding]:
         findings: list[Finding] = []
         absolute_path = str(Path(context.path).resolve())
+        file_path = Path(context.path)
         for rule in self._rules:
+            if not matches_file_applicability(file_path, rule.meta.file_applicability):
+                continue
+            if not rule.applies_to(context):
+                continue
             for violation in rule.apply(context):
                 finding = violation.to_finding(rule.check_id, absolute_path)
                 findings.append(finding)
@@ -124,7 +148,12 @@ class JavaAnalyzer:
         scope: TaskScope | None = None,
     ) -> None:
         for rule in self._tree_rules:
-            for finding in rule.apply_tree(java_files, scope=scope):
+            eligible_files = filter_paths(java_files, rule.meta.tree_file_applicability)
+            for finding in rule.apply_tree(
+                eligible_files,
+                scope=scope,
+                contexts=self._context_cache,
+            ):
                 report.add_finding(finding)
 
 

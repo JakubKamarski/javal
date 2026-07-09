@@ -6,6 +6,7 @@ from pathlib import Path
 from validator.java.ast.modifiers import is_public_top_level_type
 from validator.java.ast.variables import declaration_type_text, is_constant_field
 from validator.java.context import JavaFileContext
+from validator.java.rules.applicability import context_for
 from validator.java.rules.testing._support import (
     expected_test_class_name,
     is_test_source_file,
@@ -37,11 +38,15 @@ def production_class_paths(java_files: list[Path]) -> dict[str, Path]:
     }
 
 
-def build_injected_by_index(class_to_path: dict[str, Path]) -> dict[str, set[str]]:
+def build_injected_by_index(
+    class_to_path: dict[str, Path],
+    *,
+    contexts: dict[str, JavaFileContext] | None = None,
+) -> dict[str, set[str]]:
     injected_by: dict[str, set[str]] = defaultdict(set)
 
     for class_name, path in class_to_path.items():
-        context = JavaFileContext.from_path(path)
+        context = context_for(path, contexts)
         for dependency in iter_injected_type_names(context):
             if dependency in class_to_path and dependency != class_name:
                 injected_by[dependency].add(class_name)
@@ -97,6 +102,8 @@ def is_covered_by_ancestor_it(
     class_name: str,
     class_to_path: dict[str, Path],
     injected_by: dict[str, set[str]],
+    *,
+    contexts: dict[str, JavaFileContext] | None = None,
 ) -> bool:
     visiting: set[str] = set()
     pending = list(injected_by.get(class_name, ()))
@@ -107,7 +114,7 @@ def is_covered_by_ancestor_it(
             continue
         visiting.add(injector)
 
-        if has_required_it_file(injector, class_to_path):
+        if has_required_it_file(injector, class_to_path, contexts=contexts):
             return True
 
         pending.extend(injected_by.get(injector, ()))
@@ -115,7 +122,12 @@ def is_covered_by_ancestor_it(
     return False
 
 
-def has_required_it_file(class_name: str, class_to_path: dict[str, Path]) -> bool:
+def has_required_it_file(
+    class_name: str,
+    class_to_path: dict[str, Path],
+    *,
+    contexts: dict[str, JavaFileContext] | None = None,
+) -> bool:
     requirement = subject_test_requirement(class_name)
     if requirement is None:
         return False
@@ -124,7 +136,7 @@ def has_required_it_file(class_name: str, class_to_path: dict[str, Path]) -> boo
     if source_path is None:
         return False
 
-    context = JavaFileContext.from_path(source_path)
+    context = context_for(source_path, contexts)
     if requirement.requires_public_class and not is_public_top_level_type(context, class_name):
         return False
 

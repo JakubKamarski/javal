@@ -3,8 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-UNIT_TEST_SUFFIX = "Test"
-IT_SUFFIX = "IT"
+from validator.java.source_paths import (
+    IT_SUFFIX,
+    UNIT_TEST_SUFFIX,
+    integration_test_base_name,
+    is_main_source_file,
+    is_test_source_file,
+    unit_test_base_name,
+)
 
 TESTING_SUGGESTION = "Add the required test class per agents/rule-testing.md."
 
@@ -59,35 +65,6 @@ SUBJECT_TEST_REQUIREMENTS: tuple[SubjectTestRequirement, ...] = (
 )
 
 EXCLUDED_SUBJECT_SUFFIXES = ("Controller",)
-
-
-def unit_test_base_name(stem: str) -> str | None:
-    if not stem.endswith(UNIT_TEST_SUFFIX):
-        return None
-    if stem.endswith(f"{IT_SUFFIX}{UNIT_TEST_SUFFIX}"):
-        return None
-    base = stem[: -len(UNIT_TEST_SUFFIX)]
-    return base or None
-
-
-def integration_test_base_name(stem: str) -> str | None:
-    if not stem.endswith(IT_SUFFIX):
-        return None
-    base = stem[: -len(IT_SUFFIX)]
-    return base or None
-
-
-def is_test_source_file(path: Path) -> bool:
-    parts = path.resolve().parts
-    if "src" in parts and "test" in parts and "java" in parts:
-        return True
-    stem = path.stem
-    return unit_test_base_name(stem) is not None or integration_test_base_name(stem) is not None
-
-
-def is_main_source_file(path: Path) -> bool:
-    parts = path.resolve().parts
-    return "src" in parts and "main" in parts and "java" in parts
 
 
 def subject_test_requirement(class_name: str) -> SubjectTestRequirement | None:

@@ -10,13 +10,13 @@ from validator.java.ast import (
     is_public_top_level_type,
 )
 from validator.java.context import JavaFileContext
+from validator.java.rules.applicability import context_for
 from validator.java.rules.base import TreeJavaRule
 from validator.java.rules.testing._support import (
     IT_SUFFIX,
     TESTING_SUGGESTION,
     expected_test_class_name,
     is_main_source_file,
-    is_test_source_file,
     resolve_expected_test_path,
     subject_test_requirement,
 )
@@ -28,34 +28,19 @@ from validator.java.rules.testing._injection_coverage import (
 from validator.report import Finding
 
 
-def _production_sources_to_check(java_files: list[Path], scope: TaskScope | None) -> list[Path]:
+def _sources_to_check(java_files: list[Path], scope: TaskScope | None) -> list[Path]:
     if scope is not None:
         if not scope.commits:
             return []
         changed_paths = set(scope.changed_lines)
-        return [
-            path
-            for path in java_files
-            if str(path.resolve()) in changed_paths and _is_checkable_production_source(path)
-        ]
+        return [path for path in java_files if str(path.resolve()) in changed_paths]
 
-    return [
-        path
-        for path in java_files
-        if _is_checkable_production_source(path) and not is_main_source_file(path)
-    ]
-
-
-def _is_checkable_production_source(path: Path) -> bool:
-    if is_test_source_file(path):
-        return False
-    if is_main_source_file(path):
-        return True
-    return "src" not in path.resolve().parts
+    return [path for path in java_files if not is_main_source_file(path)]
 
 
 class MissingTestClassRule(TreeJavaRule):
     scope_policy = "task_changed"
+    tree_file_applicability = "production"
 
     @property
     def check_id(self) -> str:
@@ -65,15 +50,18 @@ class MissingTestClassRule(TreeJavaRule):
         self,
         java_files: list[Path],
         scope: TaskScope | None = None,
+        *,
+        contexts: dict[str, JavaFileContext] | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
         class_to_path = production_class_paths(java_files)
-        injected_by = build_injected_by_index(class_to_path)
+        injected_by = build_injected_by_index(class_to_path, contexts=contexts)
 
-        for source_path in _production_sources_to_check(java_files, scope):
+        for source_path in _sources_to_check(java_files, scope):
             finding = self._check_production_source(
                 source_path,
                 scope,
+                contexts=contexts,
                 class_to_path=class_to_path,
                 injected_by=injected_by,
             )
@@ -87,6 +75,7 @@ class MissingTestClassRule(TreeJavaRule):
         source_path: Path,
         scope: TaskScope | None = None,
         *,
+        contexts: dict[str, JavaFileContext] | None = None,
         class_to_path: dict[str, Path] | None = None,
         injected_by: dict[str, set[str]] | None = None,
     ) -> Finding | None:
@@ -95,7 +84,7 @@ class MissingTestClassRule(TreeJavaRule):
         if requirement is None:
             return None
 
-        context = JavaFileContext.from_path(source_path)
+        context = context_for(source_path, contexts)
         if is_abstract_top_level_type(context, class_name):
             return None
         if requirement.requires_public_class and not is_public_top_level_type(context, class_name):
@@ -118,7 +107,12 @@ class MissingTestClassRule(TreeJavaRule):
             and requirement.subject_suffix == "Service"
             and class_to_path is not None
             and injected_by is not None
-            and is_covered_by_ancestor_it(class_name, class_to_path, injected_by)
+            and is_covered_by_ancestor_it(
+                class_name,
+                class_to_path,
+                injected_by,
+                contexts=contexts,
+            )
         ):
             return None
 

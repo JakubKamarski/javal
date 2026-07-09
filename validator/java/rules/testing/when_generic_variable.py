@@ -25,6 +25,8 @@ def _node_within(node, ancestor) -> bool:
 
 
 class TestWhenGenericVariableRule(JavaRule):
+    file_applicability = "test"
+
     @property
     def check_id(self) -> str:
         return "java-testing-when-generic-variable"

@@ -239,11 +239,17 @@ When adding a rule, add a **minimal anonymized** fixture plus pytest coverage â€
 3. Register the class in `validator/java/rules/registry.py` and add a description to `RULE_DESCRIPTIONS`.
 4. Add a minimal anonymized fixture sample and pytest coverage (see **Fixture and test-data conventions** above).
 
+Set `file_applicability` on file rules (or `tree_file_applicability` on tree rules) when a rule should not run on every Java path. Values: `any` (default), `test`, `main`, `production`. The orchestrator in `JavaAnalyzer` applies these predicates before calling `apply()` / `apply_tree()`. Override `applies_to(context)` only for cheap AST or source pre-checks that path predicates cannot express.
+
+Test fixtures that exercise test-only rules must be named `*Test.java` or `*IT.java`, or live under `src/test/java`, so `is_test_source_file()` matches.
+
 List registered rules:
 
 ```bash
 javal list-rules
 ```
+
+Output columns: `check_id`, `scope` (with `tree_scope` when relevant), `applicability`, `description`.
 
 Tree rules use `scope_policy`:
 - `task_changed` â€” only task-changed production files (default)

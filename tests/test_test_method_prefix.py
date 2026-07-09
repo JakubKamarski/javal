@@ -3,7 +3,7 @@ from __future__ import annotations
 from tests.conftest import violation_summaries
 
 CHECK_ID = "java-testing-test-method-prefix"
-FIXTURE = "BadTestMethodPrefixSample.java"
+FIXTURE = "BadTestMethodPrefixSampleTest.java"
 
 
 def test_bad_test_method_prefix_is_flagged(analyzer):
