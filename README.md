@@ -91,15 +91,13 @@ javal todo \
 
 ## Task scope
 
-`javal` inspects commits whose subject starts with:
-
-```text
-<TASK-ID> |
-```
+`javal` inspects commits whose subject starts with the task id (for example `ABC-1234`). Text after the id is optional — separators such as ` | ` are accepted but not required.
 
 Examples that match `ABC-1234`:
 
 - `ABC-1234 | Add tracking scheduler`
+- `ABC-1234 Add tracking scheduler`
+- `ABC-1234: Fix null handling`
 - `ABC-1234 | HOTFIX | Fix null handling`
 - `ABC-1234 | Validation fixes`
 

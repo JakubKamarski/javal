@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 TASK_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
+TASK_COMMIT_SUBJECT_SUFFIX = re.compile(r"($|[^0-9])")
 HUNK_HEADER_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 
 
@@ -67,8 +68,19 @@ def ensure_git_repo(repo: Path) -> None:
         raise ValueError(f"Not a git repository: {repo}")
 
 
+def commit_subject_matches_task_id(subject: str, task_id: str) -> bool:
+    if not subject.startswith(task_id):
+        return False
+    if len(subject) == len(task_id):
+        return True
+    return subject[len(task_id)] not in "0123456789"
+
+
+def task_commit_grep_pattern(task_id: str) -> str:
+    return f"^{re.escape(task_id)}{TASK_COMMIT_SUBJECT_SUFFIX.pattern}"
+
+
 def list_task_commits(repo: Path, task_id: str) -> list[str]:
-    prefix = f"{task_id} |"
     result = subprocess.run(
         [
             "git",
@@ -76,7 +88,7 @@ def list_task_commits(repo: Path, task_id: str) -> list[str]:
             str(repo),
             "log",
             "--format=%H",
-            f"--grep=^{re.escape(prefix)}",
+            f"--grep={task_commit_grep_pattern(task_id)}",
             "-E",
         ],
         capture_output=True,

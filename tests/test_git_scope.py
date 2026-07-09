@@ -7,6 +7,8 @@ import pytest
 
 from validator.git_scope import (
     build_task_scope,
+    commit_subject_matches_task_id,
+    list_task_commits,
     parse_unified_diff,
     resolve_repo_path,
     validate_task_id,
@@ -38,6 +40,43 @@ def test_validate_task_id_accepts_standard_format():
 def test_validate_task_id_rejects_invalid_format():
     with pytest.raises(ValueError):
         validate_task_id("plog-5164")
+
+
+@pytest.mark.parametrize(
+    ("subject", "task_id", "expected"),
+    [
+        ("ABC-1234 | Add feature", "ABC-1234", True),
+        ("ABC-1234 Add feature", "ABC-1234", True),
+        ("ABC-1234: Fix bug", "ABC-1234", True),
+        ("ABC-1234", "ABC-1234", True),
+        ("ABC-12345 | Extended id", "ABC-1234", False),
+        ("ABC-12340", "ABC-1234", False),
+        ("XYZ-1234 | Other task", "ABC-1234", False),
+        ("Initial commit", "ABC-1234", False),
+    ],
+)
+def test_commit_subject_matches_task_id(subject, task_id, expected):
+    assert commit_subject_matches_task_id(subject, task_id) is expected
+
+
+def test_list_task_commits_accepts_task_id_without_pipe_separator(tmp_path):
+    task_id = "ABC-7777"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    (tmp_path / "file.txt").write_text("initial\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial commit")
+    (tmp_path / "file.txt").write_text("initial\nchanged\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} Add without pipe")
+    (tmp_path / "file.txt").write_text("initial\nchanged\nmore\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "ABC-1111 | Other task")
+
+    commits = list_task_commits(tmp_path, task_id)
+
+    assert len(commits) == 1
 
 
 def test_resolve_repo_path_defaults_to_cwd(tmp_path, monkeypatch):

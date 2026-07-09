@@ -17,7 +17,7 @@ Primary consumers:
 
 ### Task
 
-A **task** is identified by a Jira-style id (`ABC-1234`). Commits whose subject starts with `<TASK-ID> |` belong to that task.
+A **task** is identified by a Jira-style id (`ABC-1234`). Commits whose subject starts with that task id belong to the task; characters after the id (for example ` | `) are optional.
 
 ### Task scope
 
@@ -57,7 +57,7 @@ Path classification lives in `validator/java/source_paths.py`:
 ## Assumptions
 
 1. **Git repository** — the target path resolves to a git work tree. Task scope and Liquibase author checks depend on git history and config.
-2. **Task commit message format** — commits use `<TASK-ID> | <message>` (regex: `^[A-Z][A-Z0-9]*-\d+$` for the id).
+2. **Task commit message format** — commits start with the task id (`^[A-Z][A-Z0-9]*-\d+$`); following text is optional.
 3. **Branch contains task commits** — validation runs against commits reachable from the current branch matching the task id prefix.
 4. **UTF-8 sources** — Java and XML files are read as UTF-8.
 5. **Maven/Gradle layout** — `src/main/java` and `src/test/java` conventions are assumed for path-based applicability and test-class resolution.
@@ -159,8 +159,10 @@ Used by pytest and `analyze_java_tree()` without scope: all discovered Java file
 ### Commit selection
 
 ```text
-git log --grep='^<TASK-ID> |'
+git log --grep='^<TASK-ID>($|[^0-9])'
 ```
+
+Only the task id prefix is required; ` | ` and other separators after the id are optional.
 
 ### Changed lines
 
