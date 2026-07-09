@@ -12,12 +12,18 @@ from validator.java.ast import (
 from validator.java.context import JavaFileContext
 from validator.java.rules.base import TreeJavaRule
 from validator.java.rules.testing._support import (
+    IT_SUFFIX,
     TESTING_SUGGESTION,
     expected_test_class_name,
     is_main_source_file,
     is_test_source_file,
     resolve_expected_test_path,
     subject_test_requirement,
+)
+from validator.java.rules.testing.injection_coverage import (
+    build_injected_by_index,
+    is_covered_by_ancestor_it,
+    production_class_paths,
 )
 from validator.report import Finding
 
@@ -61,9 +67,16 @@ class MissingTestClassRule(TreeJavaRule):
         scope: TaskScope | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
+        class_to_path = production_class_paths(java_files)
+        injected_by = build_injected_by_index(class_to_path)
 
         for source_path in _production_sources_to_check(java_files, scope):
-            finding = self._check_production_source(source_path, scope)
+            finding = self._check_production_source(
+                source_path,
+                scope,
+                class_to_path=class_to_path,
+                injected_by=injected_by,
+            )
             if finding is not None:
                 findings.append(finding)
 
@@ -73,6 +86,9 @@ class MissingTestClassRule(TreeJavaRule):
         self,
         source_path: Path,
         scope: TaskScope | None = None,
+        *,
+        class_to_path: dict[str, Path] | None = None,
+        injected_by: dict[str, set[str]] | None = None,
     ) -> Finding | None:
         class_name = source_path.stem
         requirement = subject_test_requirement(class_name)
@@ -95,6 +111,15 @@ class MissingTestClassRule(TreeJavaRule):
         test_class_name = expected_test_class_name(class_name, requirement)
         expected_test_path = resolve_expected_test_path(source_path, test_class_name)
         if expected_test_path.is_file():
+            return None
+
+        if (
+            requirement.test_suffix == IT_SUFFIX
+            and requirement.subject_suffix == "Service"
+            and class_to_path is not None
+            and injected_by is not None
+            and is_covered_by_ancestor_it(class_name, class_to_path, injected_by)
+        ):
             return None
 
         return Finding(

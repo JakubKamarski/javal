@@ -61,6 +61,20 @@ def test_missing_test_class_rule_ignores_unscoped_gateway():
     assert all("SampleTrackerGateway" not in finding.summary for finding in findings)
 
 
+def test_missing_test_class_rule_ignores_internal_service_covered_by_facade_it():
+    analyzer = JavaAnalyzer(tree_rules=[MissingTestClassRule()])
+    findings = findings_for(analyzer)
+    assert all("InternalShipmentService" not in finding.summary for finding in findings)
+    assert all("CoveredShipmentFacade" not in finding.summary for finding in findings)
+
+
+def test_missing_test_class_rule_flags_standalone_service_without_it():
+    analyzer = JavaAnalyzer(tree_rules=[MissingTestClassRule()])
+    findings = findings_for(analyzer)
+    assert any("StandaloneService" in finding.summary for finding in findings)
+    assert any("StandaloneServiceIT" in finding.summary for finding in findings)
+
+
 def _git(repo: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True)
 

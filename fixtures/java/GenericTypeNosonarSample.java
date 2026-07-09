@@ -16,5 +16,14 @@ public class MultiLineGenericTypeNosonarSample<ShipmentStatusT extends BaseEntit
         implements GenericTypeNosonarInterface<GroupKeyT> {
 }
 
+class GoodMethodGenericNosonarSample {
+
+    public static <ItemT> long run( // NOSONAR
+        java.util.function.LongFunction<java.util.List<ItemT>> pageByCursor
+    ) {
+        return 0;
+    }
+}
+
 class BaseEntity {
 }

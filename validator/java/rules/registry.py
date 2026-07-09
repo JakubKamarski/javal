@@ -30,10 +30,10 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-naming-constant-upper-snake": "Constants must use UPPER_SNAKE_CASE",
     "java-local-variable-no-var": "Local variables must use explicit types (var is forbidden)",
     "java-clean-code-comment": "Only NOSONAR, deprecation, public API javadoc, GWT markers, and task-referenced TODO/FIXME are allowed",
-    "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header",
+    "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header or method signature",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-duplicate-it-and-test": "Same subject has both *Test and *IT files in the repo",
-    "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods",
+    "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods; internal *Service exempt when an ancestor in the injection chain has its required *IT",
     "java-jpa-entity-serial-version-uid": "JPA entity persistent field changes must update serialVersionUID",
 }
 
