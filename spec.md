@@ -18,8 +18,9 @@ expected to be UTF-8.
 ### Task identification
 
 A task ID matches `^[A-Z][A-Z0-9]*-\d+$`. Reachable commits belong to the task
-when their subject starts with that ID and the next character, when present, is
-not a digit. Separators such as ` | `, a space, or `:` are optional.
+when their subject contains that standalone ID: it must not be preceded by an
+alphanumeric character or followed by a digit. Conventional prefixes and separators
+such as `fix: `, ` | `, a space, or `:` are accepted.
 
 The CLI returns exit code `2` when no matching commit exists. Programmatic
 analyzer APIs may still receive an empty `TaskScope` for isolated tests.

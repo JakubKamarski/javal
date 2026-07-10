@@ -49,9 +49,12 @@ def test_validate_task_id_rejects_invalid_format():
         ("ABC-1234 | Add feature", "ABC-1234", True),
         ("ABC-1234 Add feature", "ABC-1234", True),
         ("ABC-1234: Fix bug", "ABC-1234", True),
+        ("fix: ABC-1234 Handle timeout", "ABC-1234", True),
+        ("refactor(scope): ABC-1234 Simplify flow", "ABC-1234", True),
         ("ABC-1234", "ABC-1234", True),
         ("ABC-12345 | Extended id", "ABC-1234", False),
         ("ABC-12340", "ABC-1234", False),
+        ("XABC-1234 | Embedded id", "ABC-1234", False),
         ("XYZ-1234 | Other task", "ABC-1234", False),
         ("Initial commit", "ABC-1234", False),
     ],
@@ -74,6 +77,26 @@ def test_list_task_commits_accepts_task_id_without_pipe_separator(tmp_path):
     (tmp_path / "file.txt").write_text("initial\nchanged\nmore\n", encoding="utf-8")
     _git(tmp_path, "add", ".")
     _git(tmp_path, "commit", "-m", "ABC-1111 | Other task")
+
+    commits = list_task_commits(tmp_path, task_id)
+
+    assert len(commits) == 1
+
+
+def test_list_task_commits_accepts_task_id_after_conventional_commit_prefix(tmp_path):
+    task_id = "ABC-7777"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    (tmp_path / "file.txt").write_text("initial\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial commit")
+    (tmp_path / "file.txt").write_text("initial\nchanged\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"fix: {task_id} Handle validation error")
+    (tmp_path / "file.txt").write_text("initial\nchanged\nmore\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "fix: ABC-77770 Different task")
 
     commits = list_task_commits(tmp_path, task_id)
 

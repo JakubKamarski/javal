@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 TASK_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
-TASK_COMMIT_SUBJECT_SUFFIX = re.compile(r"($|[^0-9])")
 HUNK_HEADER_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 BLAME_HEADER_PATTERN = re.compile(r"^([0-9a-f]{40}) \d+ (\d+)(?: \d+)?$")
 SCOPED_FILE_SUFFIXES = frozenset({".java", ".xml"})
@@ -71,15 +70,10 @@ def ensure_git_repo(repo: Path) -> None:
 
 
 def commit_subject_matches_task_id(subject: str, task_id: str) -> bool:
-    if not subject.startswith(task_id):
-        return False
-    if len(subject) == len(task_id):
-        return True
-    return subject[len(task_id)] not in "0123456789"
-
-
-def task_commit_grep_pattern(task_id: str) -> str:
-    return f"^{re.escape(task_id)}{TASK_COMMIT_SUBJECT_SUFFIX.pattern}"
+    return re.search(
+        rf"(?<![A-Za-z0-9]){re.escape(task_id)}(?!\d)",
+        subject,
+    ) is not None
 
 
 def list_task_commits(repo: Path, task_id: str) -> list[str]:
@@ -89,15 +83,17 @@ def list_task_commits(repo: Path, task_id: str) -> list[str]:
             "-C",
             str(repo),
             "log",
-            "--format=%H",
-            f"--grep={task_commit_grep_pattern(task_id)}",
-            "-E",
+            "--format=%H%x00%s",
         ],
         capture_output=True,
         text=True,
         check=True,
     )
-    commits = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    commits = []
+    for line in result.stdout.splitlines():
+        commit, separator, subject = line.partition("\0")
+        if separator and commit_subject_matches_task_id(subject, task_id):
+            commits.append(commit)
     return list(reversed(commits))
 
 

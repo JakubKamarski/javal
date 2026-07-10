@@ -1,7 +1,7 @@
 # javal
 
 `javal` is a task-scoped static-analysis CLI for Java repositories. It validates
-current lines introduced by commits whose subject starts with a task ID, plus a
+current lines introduced by commits whose subject contains a standalone task ID, plus a
 small set of repository-wide and worktree checks.
 
 The enforced policies come from
@@ -12,7 +12,7 @@ extension contracts, see [spec.md](spec.md).
 
 - Python 3.10 or newer
 - Git
-- A Git repository whose task commits start with an ID such as `ABC-1234`
+- A Git repository whose task commits contain an ID such as `ABC-1234`
 
 ## Install
 
@@ -74,12 +74,13 @@ javal list-rules
 
 ### Task scope
 
-Commit subjects may use any separator after the task ID:
+Commit subjects may place the task ID anywhere as a standalone identifier:
 
 ```text
 ABC-1234 | Add tracking scheduler
 ABC-1234 Add tracking scheduler
 ABC-1234: Fix null handling
+fix: ABC-1234 Handle timeout
 ```
 
 File rules run on current `HEAD` lines attributed to matching task commits.
