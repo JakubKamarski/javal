@@ -52,7 +52,7 @@ resolve_python() {
 
 PYTHON_CMD="$(resolve_python || true)"
 if [[ -z "${PYTHON_CMD}" ]]; then
-  echo "Python interpreter not found. Install Python 3.8+ and re-run install.sh." >&2
+  echo "Python interpreter not found. Install Python 3.10+ and re-run install.sh." >&2
   exit 1
 fi
 

@@ -23,7 +23,7 @@ function Resolve-PythonCommand {
 
 $pythonCmd = Resolve-PythonCommand
 if (-not $pythonCmd) {
-    throw "Python interpreter not found. Install Python 3.8+ and re-run install.ps1."
+    throw "Python interpreter not found. Install Python 3.10+ and re-run install.ps1."
 }
 
 if (Test-Path -Path $requirementsFile -PathType Leaf) {
