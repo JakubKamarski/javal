@@ -15,6 +15,7 @@ from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRu
 from validator.java.rules.style.local_variable_no_var import LocalVariableNoVarRule
 from validator.java.rules.entity.serial_version_uid_on_change import EntitySerialVersionUidOnChangeRule
 from validator.java.rules.testing.duplicate_it_and_test import DuplicateItAndTestRule
+from validator.java.rules.testing.duplicate_test_method import DuplicateTestMethodRule
 from validator.java.rules.testing.missing_test_class import MissingTestClassRule
 from validator.java.rules.testing.test_method_prefix import TestMethodPrefixRule
 from validator.java.rules.testing.when_generic_variable import TestWhenGenericVariableRule
@@ -34,6 +35,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header or method signature",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-test-method-prefix": "Test method name must start with the method invoked in // WHEN",
+    "java-testing-duplicate-test-method": "Tests in one class that exercise the same method and path must be parameterized",
     "java-testing-duplicate-it-and-test": "Same subject has both *Test and *IT files in the repo",
     "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods; internal *Service exempt when an ancestor in the injection chain has its required *IT",
     "java-jpa-entity-serial-version-uid": "JPA entity persistent field changes must update serialVersionUID",
@@ -82,6 +84,7 @@ def default_java_rules() -> list[JavaRule]:
         GenericTypeNosonarRule(),
         TestWhenGenericVariableRule(),
         TestMethodPrefixRule(),
+        DuplicateTestMethodRule(),
     ]
 
 
