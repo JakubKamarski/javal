@@ -9,6 +9,8 @@ from pathlib import Path
 TASK_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
 TASK_COMMIT_SUBJECT_SUFFIX = re.compile(r"($|[^0-9])")
 HUNK_HEADER_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+BLAME_HEADER_PATTERN = re.compile(r"^([0-9a-f]{40}) \d+ (\d+)(?: \d+)?$")
+SCOPED_FILE_SUFFIXES = frozenset({".java", ".xml"})
 
 
 @dataclass(frozen=True)
@@ -144,6 +146,51 @@ def get_commit_author(repo: Path, commit: str) -> str:
     return result.stdout.strip()
 
 
+def list_commit_changed_paths(repo: Path, commit: str) -> list[str]:
+    result = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "diff-tree",
+            "--root",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            "-z",
+            "-M",
+            commit,
+        ],
+        capture_output=True,
+        check=True,
+    )
+    return [
+        raw_path.decode(errors="surrogateescape")
+        for raw_path in result.stdout.split(b"\0")
+        if raw_path
+    ]
+
+
+def blame_current_lines(repo: Path, relative_path: str) -> dict[int, str]:
+    result = subprocess.run(
+        ["git", "-C", str(repo), "blame", "--line-porcelain", "HEAD", "--", relative_path],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    commit_by_line: dict[int, str] = {}
+    for output_line in result.stdout.splitlines():
+        match = BLAME_HEADER_PATTERN.fullmatch(output_line)
+        if match is None:
+            continue
+        commit_by_line[int(match.group(2))] = match.group(1)
+    return commit_by_line
+
+
+def is_scoped_source_path(relative_path: str) -> bool:
+    return Path(relative_path).suffix.lower() in SCOPED_FILE_SUFFIXES
+
+
 def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
     commits = list_task_commits(repo, task_id)
     if not commits:
@@ -157,43 +204,49 @@ def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
 
     merged: dict[str, set[int]] = defaultdict(set)
     line_authors: dict[str, dict[int, str]] = defaultdict(dict)
-    commit_changed_lines: list[tuple[str, dict[str, set[int]]]] = []
-    for commit in commits:
-        author = get_commit_author(repo, commit)
-        result = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(repo),
-                "show",
-                commit,
-                "-U0",
-                "--format=",
-                "--no-renames",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        per_commit: dict[str, set[int]] = defaultdict(set)
-        for relative_path, lines in parse_unified_diff(result.stdout).items():
-            merged[relative_path].update(lines)
-            absolute_path = str((repo / relative_path).resolve())
-            per_commit[absolute_path].update(lines)
-            for line_number in lines:
-                line_authors[absolute_path][line_number] = author
-        commit_changed_lines.append((commit, dict(per_commit)))
-
-    absolute_changed = {
-        str((repo / relative_path).resolve()): line_numbers
-        for relative_path, line_numbers in merged.items()
+    author_by_commit = {commit: get_commit_author(repo, commit) for commit in commits}
+    paths_by_commit = {
+        commit: list_commit_changed_paths(repo, commit)
+        for commit in commits
     }
+    commit_lines_by_sha: dict[str, dict[str, set[int]]] = {
+        commit: {} for commit in commits
+    }
+
+    for commit in commits:
+        for relative_path in paths_by_commit[commit]:
+            if not is_scoped_source_path(relative_path):
+                continue
+            absolute_path = str((repo / relative_path).resolve())
+            if Path(absolute_path).is_file():
+                commit_lines_by_sha[commit].setdefault(absolute_path, set())
+
+    candidate_paths = sorted(
+        {
+            relative_path
+            for changed_paths in paths_by_commit.values()
+            for relative_path in changed_paths
+            if is_scoped_source_path(relative_path) and (repo / relative_path).is_file()
+        }
+    )
+    task_commits = set(commits)
+    for relative_path in candidate_paths:
+        absolute_path = str((repo / relative_path).resolve())
+        for line_number, commit in blame_current_lines(repo, relative_path).items():
+            if commit not in task_commits:
+                continue
+            merged[absolute_path].add(line_number)
+            line_authors[absolute_path][line_number] = author_by_commit[commit]
+            commit_lines_by_sha[commit].setdefault(absolute_path, set()).add(line_number)
+
     return TaskScope(
         task_id=task_id,
         commits=tuple(commits),
-        changed_lines=absolute_changed,
+        changed_lines=dict(merged),
         line_authors=dict(line_authors),
-        commit_changed_lines=tuple(commit_changed_lines),
+        commit_changed_lines=tuple(
+            (commit, commit_lines_by_sha[commit]) for commit in commits
+        ),
     )
 
 
@@ -222,7 +275,7 @@ def collect_worktree_changed_lines(repo: Path) -> dict[str, set[int]]:
             continue
         try:
             line_count = len(file_path.read_text(encoding="utf-8").splitlines())
-        except OSError:
+        except (OSError, UnicodeError):
             continue
         if line_count:
             merged[absolute_path].update(range(1, line_count + 1))
@@ -244,5 +297,6 @@ def get_git_user_name(repo: Path) -> str:
 
 def build_task_scope(repo: Path, task_id: str) -> TaskScope:
     validate_task_id(task_id)
-    ensure_git_repo(repo)
-    return collect_task_changed_lines(repo, task_id)
+    repo_root = resolve_git_repo_root(repo)
+    ensure_git_repo(repo_root)
+    return collect_task_changed_lines(repo_root, task_id)

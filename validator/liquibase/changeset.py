@@ -1,13 +1,7 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
-
-CHANGE_SET_OPEN_PATTERN = re.compile(r"<changeSet\b", re.IGNORECASE)
-CHANGE_SET_CLOSE_PATTERN = re.compile(r"</changeSet>", re.IGNORECASE)
-CHANGE_SET_SELF_CLOSE_PATTERN = re.compile(r"<changeSet\b[^>]*/>", re.IGNORECASE)
-ID_ATTR_PATTERN = re.compile(r"""\bid\s*=\s*["']([^"']+)["']""", re.IGNORECASE)
-AUTHOR_ATTR_PATTERN = re.compile(r"""\bauthor\s*=\s*["']([^"']*)["']""", re.IGNORECASE)
+from xml.parsers import expat
 
 
 @dataclass(frozen=True)
@@ -20,47 +14,41 @@ class ChangeSet:
 
 def parse_changesets(source: str) -> list[ChangeSet]:
     changesets: list[ChangeSet] = []
-    lines = source.splitlines()
+    open_changesets: list[tuple[str, str, int]] = []
+    parser = expat.ParserCreate(namespace_separator="}")
 
-    index = 0
-    while index < len(lines):
-        line_number = index + 1
-        line = lines[index]
+    def local_name(name: str) -> str:
+        return name.rsplit("}", maxsplit=1)[-1]
 
-        if CHANGE_SET_SELF_CLOSE_PATTERN.search(line):
-            changesets.append(_build_changeset(line, line_number, line_number))
-            index += 1
-            continue
+    def start_element(name: str, attributes: dict[str, str]) -> None:
+        if local_name(name) != "changeSet":
+            return
+        normalized_attributes = {
+            local_name(attribute_name): value
+            for attribute_name, value in attributes.items()
+        }
+        open_changesets.append(
+            (
+                normalized_attributes.get("id", ""),
+                normalized_attributes.get("author", ""),
+                parser.CurrentLineNumber,
+            )
+        )
 
-        if CHANGE_SET_OPEN_PATTERN.search(line):
-            start_line = line_number
-            attrs = line
-            depth = 1
-            index += 1
-            while index < len(lines) and depth > 0:
-                current_line = lines[index]
-                current_line_number = index + 1
-                depth += len(CHANGE_SET_OPEN_PATTERN.findall(current_line))
-                depth -= len(CHANGE_SET_CLOSE_PATTERN.findall(current_line))
-                if depth == 0:
-                    changesets.append(_build_changeset(attrs, start_line, current_line_number))
-                index += 1
-            continue
+    def end_element(name: str) -> None:
+        if local_name(name) != "changeSet" or not open_changesets:
+            return
+        changeset_id, author, start_line = open_changesets.pop()
+        changesets.append(
+            ChangeSet(
+                changeset_id=changeset_id,
+                author=author,
+                start_line=start_line,
+                end_line=parser.CurrentLineNumber,
+            )
+        )
 
-        index += 1
-
+    parser.StartElementHandler = start_element
+    parser.EndElementHandler = end_element
+    parser.Parse(source, True)
     return changesets
-
-
-def _build_changeset(attrs: str, start_line: int, end_line: int) -> ChangeSet:
-    return ChangeSet(
-        changeset_id=_extract_attr(ID_ATTR_PATTERN, attrs),
-        author=_extract_attr(AUTHOR_ATTR_PATTERN, attrs),
-        start_line=start_line,
-        end_line=end_line,
-    )
-
-
-def _extract_attr(pattern: re.Pattern[str], text: str) -> str:
-    match = pattern.search(text)
-    return match.group(1) if match else ""

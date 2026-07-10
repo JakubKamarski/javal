@@ -169,6 +169,17 @@ def test_serial_version_uid_is_exempt_from_constant_upper_snake_case(analyzer):
     assert constant_findings == []
 
 
+def test_non_static_final_field_with_static_in_name_is_not_constant(analyzer):
+    source = "class Sample {\n    private final String staticName = \"value\";\n}\n"
+
+    findings = analyzer.analyze_source("Sample.java", source)
+
+    assert not any(
+        finding.check == "java-naming-constant-upper-snake"
+        for finding in findings
+    )
+
+
 def test_value_by_key_variable_is_allowed(analyzer):
     findings = analyzer.analyze_file(BAD_VARIABLES)
     collection_findings = [

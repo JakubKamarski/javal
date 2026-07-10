@@ -136,18 +136,17 @@ class Report:
             "",
         ])
 
-        actionable = [f for f in self.findings if f.severity != "info" or not f.file]
-        info_only = [f for f in self.findings if f.severity == "info" and f.file]
+        actionable = [f for f in self.findings if f.severity != "info"]
+        informational = [f for f in self.findings if f.severity == "info"]
 
-        if not actionable and not info_only:
+        if not actionable and not informational:
             lines.append("_No issues found._")
             return "\n".join(lines)
 
         for finding in actionable:
             lines.extend(self._format_finding(finding, self.target, path_format))
 
-        passed = [f for f in self.findings if f.severity == "info" and not f.file]
-        for finding in passed:
+        for finding in informational:
             lines.extend(self._format_finding(finding, self.target, path_format))
 
         return "\n".join(lines)

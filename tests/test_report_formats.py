@@ -123,6 +123,16 @@ def test_report_to_task_todos_with_no_findings():
     assert report.to_task_todos() == "- [x] No validation findings."
 
 
+def test_markdown_report_lists_each_pass_once():
+    report = Report(target="/repo")
+    report.add_pass("java-analysis", "No issues found.")
+
+    markdown = report.to_markdown()
+
+    assert markdown.count("### [info] java-analysis") == 1
+    assert markdown.count("No issues found.") == 1
+
+
 def test_report_to_task_todos_lists_invalid_findings(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()

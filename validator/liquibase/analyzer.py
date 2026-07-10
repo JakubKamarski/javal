@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from xml.parsers.expat import ExpatError
 
 from validator.analyzer_base import allowed_lines_for, changed_files_in_scope, empty_task_scope_pass
 from validator.discovery import discover_files
@@ -119,7 +120,21 @@ class LiquibaseAnalyzer:
         findings: list[Finding] = []
         absolute_path = str(file_path.resolve())
 
-        for changeset in parse_changesets(source):
+        try:
+            changesets = parse_changesets(source)
+        except ExpatError as error:
+            return [
+                Finding(
+                    severity="warning",
+                    check=CHECK_ID,
+                    summary=f"Cannot parse Liquibase changelog: {error}",
+                    file=absolute_path,
+                    line=error.lineno,
+                    suggestion="Correct the XML before validating changeSet authors.",
+                )
+            ]
+
+        for changeset in changesets:
             if allowed_lines is not None and not _changeset_introduced_by_task(
                 changeset, allowed_lines
             ):

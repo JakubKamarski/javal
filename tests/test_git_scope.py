@@ -14,6 +14,7 @@ from validator.git_scope import (
     validate_task_id,
 )
 from validator.java.analyzer import analyze_java_tree
+from validate import main
 
 
 SAMPLE_DIFF = """\
@@ -145,3 +146,79 @@ def test_analyze_java_tree_reports_only_task_changed_lines(tmp_path):
     summaries = [finding.summary for finding in report.invalid_findings]
     assert any("statusByWaybill" in summary for summary in summaries)
     assert all("retrieveName" not in summary for summary in summaries)
+
+
+def test_task_scope_tracks_current_lines_after_later_task_commit_shifts_file(tmp_path):
+    task_id = "ABC-9999"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    source = tmp_path / "Sample.java"
+    source.write_text(
+        "package demo;\n\nclass Sample {\n    String getName() { return \"ok\"; }\n}\n",
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial commit")
+
+    source.write_text(source.read_text(encoding="utf-8").replace("getName", "label"), encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Introduce invalid method")
+
+    source.write_text(source.read_text(encoding="utf-8").replace("package demo;", "package demo;\n\n"), encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Reformat header")
+
+    report = analyze_java_tree(tmp_path, task_id=task_id)
+
+    assert any("label" in finding.summary for finding in report.invalid_findings)
+
+
+def test_cli_resolves_nested_path_to_repository_root(tmp_path, capsys):
+    task_id = "ABC-9999"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    module = tmp_path / "module"
+    module.mkdir()
+    source = module / "Sample.java"
+    source.write_text("class Sample {}\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial commit")
+    source.write_text("import java.util.List;\nclass Sample {}\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Add unused import")
+
+    exit_code = main([task_id, str(module)])
+
+    assert exit_code == 1
+    assert "Unused import 'List'" in capsys.readouterr().out
+
+
+def test_cli_fails_when_task_has_no_matching_commits(tmp_path, capsys):
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    (tmp_path / "Sample.java").write_text("class Sample {}\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial commit")
+
+    exit_code = main(["ABC-9999", str(tmp_path)])
+
+    assert exit_code == 2
+    assert "No commits found for task ABC-9999" in capsys.readouterr().err
+
+
+def test_task_scope_ignores_committed_binary_files(tmp_path):
+    task_id = "ABC-9999"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    (tmp_path / "image.bin").write_bytes(b"\xff\xfe\x00\x01")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Add binary artifact")
+
+    scope = build_task_scope(tmp_path, task_id)
+
+    assert len(scope.commits) == 1
+    assert scope.changed_lines == {}

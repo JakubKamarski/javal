@@ -4,13 +4,21 @@ from tests.conftest import FIXTURES_DIR, violation_summaries
 from validator.java.ast.imports import collect_identifier_usages
 from validator.java.ast.methods import iter_method_declarations
 from validator.java.context import JavaFileContext
-from validator.java.parser import normalize_java_source
 
 EM_DASH_FIXTURE = FIXTURES_DIR / "EmDashParseSample.java"
 
 
-def test_normalize_java_source_replaces_unicode_dashes():
-    assert normalize_java_source("a\u2014b\u2013c") == "a-b-c"
+def test_non_ascii_text_before_java_nodes_preserves_byte_offsets(analyzer):
+    source = (
+        "import java.util.List;\n"
+        "// café\n"
+        "class Sample { List<String> retrieveValues() { return List.of(); } }\n"
+    )
+
+    findings = analyzer.analyze_source("Sample.java", source)
+
+    assert not any(finding.check == "unused-imports" for finding in findings)
+    assert not any(finding.check == "java-naming-method-verb-prefix" for finding in findings)
 
 
 def test_em_dash_fixture_parses_full_method_names():

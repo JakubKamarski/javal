@@ -6,7 +6,12 @@ import sys
 from pathlib import Path
 
 from validator.analyze import analyze_repo
-from validator.git_scope import build_task_scope, resolve_repo_path, validate_task_id
+from validator.git_scope import (
+    build_task_scope,
+    resolve_git_repo_root,
+    resolve_repo_path,
+    validate_task_id,
+)
 from validator.java.rules.registry import list_registered_rule_meta
 from validator.todo import append_todo
 
@@ -161,10 +166,14 @@ def run_list_rules(args: argparse.Namespace) -> int:
 def run_validate(args: argparse.Namespace) -> int:
     try:
         task_id = validate_task_id(args.task_id)
-        target = resolve_repo_path(args.repo_path)
+        target = resolve_git_repo_root(resolve_repo_path(args.repo_path))
         scope = build_task_scope(target, task_id)
     except ValueError as error:
         print(f"Error: {error}", file=sys.stderr)
+        return 2
+
+    if not scope.commits:
+        print(f"Error: No commits found for task {task_id} in {target}.", file=sys.stderr)
         return 2
 
     if not args.quiet:

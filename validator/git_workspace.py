@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -11,21 +12,30 @@ CHECK_ID = "git-uncommitted-changes"
 
 def list_uncommitted_paths(repo: Path) -> list[str]:
     result = subprocess.run(
-        ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=all"],
+        [
+            "git",
+            "-C",
+            str(repo),
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=all",
+        ],
         capture_output=True,
-        text=True,
         check=True,
     )
     paths: list[str] = []
-    for line in result.stdout.splitlines():
-        if len(line) < 4:
+    entries = result.stdout.split(b"\0")
+    index = 0
+    while index < len(entries):
+        entry = entries[index]
+        index += 1
+        if len(entry) < 4:
             continue
-        entry = line[3:].strip()
-        if not entry:
-            continue
-        if " -> " in entry:
-            entry = entry.split(" -> ", 1)[1]
-        paths.append(entry)
+        status = entry[:2].decode("ascii")
+        paths.append(os.fsdecode(entry[3:]))
+        if "R" in status or "C" in status:
+            index += 1
     return paths
 
 

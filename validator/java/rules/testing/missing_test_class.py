@@ -21,9 +21,10 @@ from validator.java.rules.testing._support import (
     subject_test_requirement,
 )
 from validator.java.rules.testing._injection_coverage import (
+    ProductionType,
     build_injected_by_index,
     is_covered_by_ancestor_it,
-    production_class_paths,
+    production_types_by_path,
 )
 from validator.report import Finding
 
@@ -54,15 +55,15 @@ class MissingTestClassRule(TreeJavaRule):
         contexts: dict[str, JavaFileContext] | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
-        class_to_path = production_class_paths(java_files)
-        injected_by = build_injected_by_index(class_to_path, contexts=contexts)
+        production_types = production_types_by_path(java_files, contexts=contexts)
+        injected_by = build_injected_by_index(production_types, contexts=contexts)
 
         for source_path in _sources_to_check(java_files, scope):
             finding = self._check_production_source(
                 source_path,
                 scope,
                 contexts=contexts,
-                class_to_path=class_to_path,
+                production_types=production_types,
                 injected_by=injected_by,
             )
             if finding is not None:
@@ -76,8 +77,8 @@ class MissingTestClassRule(TreeJavaRule):
         scope: TaskScope | None = None,
         *,
         contexts: dict[str, JavaFileContext] | None = None,
-        class_to_path: dict[str, Path] | None = None,
-        injected_by: dict[str, set[str]] | None = None,
+        production_types: dict[Path, ProductionType] | None = None,
+        injected_by: dict[Path, set[Path]] | None = None,
     ) -> Finding | None:
         class_name = source_path.stem
         requirement = subject_test_requirement(class_name)
@@ -105,11 +106,11 @@ class MissingTestClassRule(TreeJavaRule):
         if (
             requirement.test_suffix == IT_SUFFIX
             and requirement.subject_suffix == "Service"
-            and class_to_path is not None
+            and production_types is not None
             and injected_by is not None
             and is_covered_by_ancestor_it(
-                class_name,
-                class_to_path,
+                source_path,
+                production_types,
                 injected_by,
                 contexts=contexts,
             )

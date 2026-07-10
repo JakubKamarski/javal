@@ -17,11 +17,14 @@ from validator.java.ast.imports import collect_identifier_usages, iter_import_de
 from validator.java.ast.methods import iter_method_declarations
 from validator.java.ast.entities import (
     entity_class_name,
+    find_jpa_entity_class,
     find_serial_version_uid_field,
     iter_jpa_entity_class_declarations,
     iter_persistent_field_declarations,
     persistent_field_lines,
+    persistent_field_signatures,
     serial_version_uid_lines,
+    serial_version_uid_value,
 )
 from validator.java.ast.modifiers import (
     has_query_annotation,
@@ -64,6 +67,7 @@ __all__ = [
     "collect_identifier_usages",
     "comment_body",
     "entity_class_name",
+    "find_jpa_entity_class",
     "find_serial_version_uid_field",
     "has_task_reference",
     "is_allowed_comment",
@@ -98,6 +102,8 @@ __all__ = [
     "node_has_modifier",
     "parse_gwt_section_line_ranges",
     "persistent_field_lines",
+    "persistent_field_signatures",
     "serial_version_uid_lines",
+    "serial_version_uid_value",
     "top_level_type_name",
 ]

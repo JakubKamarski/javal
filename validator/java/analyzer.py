@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from validator.analyzer_base import allowed_lines_for, changed_files_in_scope, empty_task_scope_pass
+from validator.analyzer_base import empty_task_scope_pass
 from validator.discovery import discover_files
 from validator.git_scope import TaskScope, build_task_scope
 from validator.java.context import JavaFileContext
@@ -80,9 +80,13 @@ class JavaAnalyzer:
         if not scope.commits:
             return empty_task_scope_pass(report, "java-analysis", scope, target)
 
-        java_files = changed_files_in_scope(
-            scope,
-            predicate=lambda path: path.suffix == ".java",
+        scoped_paths = set(scope.changed_lines)
+        for _commit, file_changes in scope.commit_changed_lines:
+            scoped_paths.update(file_changes)
+        java_files = sorted(
+            Path(path)
+            for path in scoped_paths
+            if path.endswith(".java") and Path(path).is_file()
         )
         if not java_files:
             report.add_pass(
@@ -93,7 +97,7 @@ class JavaAnalyzer:
 
         analyzed_lines = 0
         for file_path in java_files:
-            allowed_lines = allowed_lines_for(scope, file_path)
+            allowed_lines = scope.changed_lines.get(str(file_path.resolve()), set())
             analyzed_lines += len(allowed_lines)
             for finding in self.analyze_file(file_path):
                 if finding.line in allowed_lines:

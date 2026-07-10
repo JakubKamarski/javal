@@ -39,8 +39,11 @@ def variable_names(context: JavaFileContext, node) -> list[tuple[str, int]]:
 
 
 def is_constant_field(context: JavaFileContext, node) -> bool:
-    text = context.text(node)
-    return "static" in text and "final" in text
+    modifiers = next((child for child in node.children if child.type == "modifiers"), None)
+    if modifiers is None:
+        return False
+    modifier_names = context.text(modifiers).split()
+    return "static" in modifier_names and "final" in modifier_names
 
 
 def uses_var_type(context: JavaFileContext, node) -> bool:

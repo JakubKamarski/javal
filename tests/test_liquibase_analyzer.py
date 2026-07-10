@@ -41,6 +41,50 @@ def test_parse_changesets_extracts_author_and_line_range():
     assert changesets[0].end_line == 9
 
 
+def test_parse_changesets_supports_multiline_opening_tag():
+    source = (
+        "<databaseChangeLog>\n"
+        "    <changeSet\n"
+        "        id=\"ABC-1\"\n"
+        "        author=\"Test User\">\n"
+        "        <sql>SELECT 1</sql>\n"
+        "    </changeSet>\n"
+        "</databaseChangeLog>\n"
+    )
+
+    changesets = parse_changesets(source)
+
+    assert len(changesets) == 1
+    assert changesets[0].changeset_id == "ABC-1"
+    assert changesets[0].author == "Test User"
+    assert changesets[0].start_line == 2
+    assert changesets[0].end_line == 6
+
+
+def test_analyze_repo_reports_malformed_liquibase_xml(tmp_path):
+    task_id = "ABC-8888"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    changelog = tmp_path / "db-changelog.xml"
+    changelog.write_text(
+        "<databaseChangeLog><changeSet id=\"broken\" author=\"Test User\"></databaseChangeLog>",
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Add malformed changelog")
+
+    report = analyze_repo(tmp_path, task_id=task_id)
+
+    findings = [
+        finding
+        for finding in report.invalid_findings
+        if finding.check == "liquibase-changeset-author"
+    ]
+    assert len(findings) == 1
+    assert "Cannot parse Liquibase changelog" in findings[0].summary
+
+
 def _git(repo: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True)
 

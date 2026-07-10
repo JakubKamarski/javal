@@ -171,6 +171,33 @@ def test_flags_uncommitted_persistent_field_change_without_serial_version_uid_up
     assert "serialVersionUID was not updated" in findings[0].summary
 
 
+def test_flags_persistent_field_removal_without_serial_version_uid_update(tmp_path):
+    task_id = "ABC-8888"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    main_dir = tmp_path / "src" / "main" / "java" / "demo"
+    main_dir.mkdir(parents=True)
+    entity_path = main_dir / "SampleEntity.java"
+    _write_entity(
+        entity_path,
+        "1L",
+        "    private String name;\n    private String obsoleteCode;\n",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial commit")
+
+    _write_entity(entity_path, "1L", "    private String name;\n")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Remove obsolete field")
+
+    report = analyze_java_tree(tmp_path, task_id=task_id)
+
+    findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
+    assert len(findings) == 1
+    assert "serialVersionUID was not updated" in findings[0].summary
+
+
 def test_flags_missing_serial_version_uid_when_persistent_field_changes(tmp_path):
     task_id = "ABC-8888"
     _git(tmp_path, "init")
