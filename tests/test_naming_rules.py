@@ -91,6 +91,26 @@ class StubPrefixSample {
     assert verb_prefix == []
 
 
+def test_assert_attach_and_order_prefix_methods_are_allowed(analyzer):
+    source = """
+package fixtures.samples;
+
+class ActionVerbPrefixSample {
+    void assertStored() {
+    }
+
+    void attachStatus() {
+    }
+
+    void orderWithLabel() {
+    }
+}
+"""
+    findings = analyzer.analyze_source("ActionVerbPrefixSample.java", source)
+    verb_prefix = [finding for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+    assert verb_prefix == []
+
+
 def test_domain_verbs_are_allowed(analyzer):
     summaries = violation_summaries(analyzer, "BadMethodNamesSample.java", "java-naming-method-verb-prefix")
     assert not any("synchronizeStatuses" in summary for summary in summaries)
