@@ -23,3 +23,15 @@ def test_allowed_comments_are_not_flagged(analyzer):
 def test_gwt_marker_with_trailing_text_is_allowed(analyzer):
     findings = findings_for(analyzer, "EmDashParseSample.java", "java-clean-code-comment")
     assert findings == []
+
+
+def test_critical_comment_warning_requires_executor_decision(analyzer):
+    findings = analyzer.analyze_source(
+        "CriticalCommentSample.java",
+        "class CriticalCommentSample {\n    // Local time is intentionally stored as UTC.\n    void synchronize() {}\n}\n",
+    )
+
+    comment_finding = next(finding for finding in findings if finding.check == "java-clean-code-comment")
+
+    assert comment_finding.severity == "warning"
+    assert "executor must explicitly decide" in comment_finding.suggestion

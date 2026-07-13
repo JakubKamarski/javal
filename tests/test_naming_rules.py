@@ -129,6 +129,80 @@ def test_configuration_bean_method_does_not_require_verb_prefix(analyzer):
     assert verb_prefix_findings == []
 
 
+def test_bean_method_without_configuration_annotation_does_not_require_verb_prefix(analyzer):
+    source = """
+import org.springframework.context.annotation.Bean;
+
+class FeignClientConfiguration {
+    @Bean
+    Object addressValidationErrorDecoder() {
+        return new Object();
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("FeignClientConfiguration.java", source)
+
+    assert not any("addressValidationErrorDecoder" in finding.summary for finding in findings)
+
+
+def test_static_factory_returning_enclosing_type_does_not_require_verb_prefix(analyzer):
+    source = """
+class ServicesErrorMessage {
+    static ServicesErrorMessage withConstraintViolations() {
+        return new ServicesErrorMessage();
+    }
+
+    static Object withUtility() {
+        return new Object();
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("ServicesErrorMessage.java", source)
+    verb_prefix = [finding.summary for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+
+    assert not any("withConstraintViolations" in summary for summary in verb_prefix)
+    assert any("withUtility" in summary for summary in verb_prefix)
+
+
+def test_method_source_provider_does_not_require_verb_prefix(analyzer):
+    source = """
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import java.util.stream.Stream;
+
+class MapperTest {
+    @ParameterizedTest
+    @MethodSource("errorCodeAndExpectedProperty")
+    void map(String value) {
+    }
+
+    static Stream<String> errorCodeAndExpectedProperty() {
+        return Stream.empty();
+    }
+
+    static Stream<String> unsupportedProvider() {
+        return Stream.empty();
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("MapperTest.java", source)
+    verb_prefix = [finding.summary for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+
+    assert not any("errorCodeAndExpectedProperty" in summary for summary in verb_prefix)
+    assert any("unsupportedProvider" in summary for summary in verb_prefix)
+
+
+def test_decode_prefix_is_allowed(analyzer):
+    source = "class Decoder { void decodeResponse() {} }"
+
+    findings = analyzer.analyze_source("Decoder.java", source)
+
+    assert not any(finding.check == "java-naming-method-verb-prefix" for finding in findings)
+
+
 def test_non_bean_method_in_configuration_class_still_requires_verb_prefix(analyzer):
     summaries = violation_summaries(analyzer, "ConfigurationBeanSample.java", "java-naming-method-verb-prefix")
     assert not any("synchronizeStatuses" in summary for summary in summaries)

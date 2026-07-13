@@ -21,6 +21,10 @@ class MethodVerbPrefixRule(JavaRule):
         for method in iter_method_declarations(context):
             if method.is_configuration_bean:
                 continue
+            if method.is_static_factory:
+                continue
+            if method.is_method_source_provider:
+                continue
             if method.is_override:
                 continue
             if method.is_test:

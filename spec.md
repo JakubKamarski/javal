@@ -153,7 +153,7 @@ the authoritative inventory.
 
 ### Tree-rule specifics
 
-- Duplicate `*Test` and `*IT` detection scans all eligible test paths.
+- Duplicate `*Test` and `*IT` detection scans eligible test paths but reports only a pair newly introduced by a task commit.
 - Missing-test detection starts from task-changed production classes. Injection
   coverage resolves types by package, explicit import, and source root; ambiguous
   same-named types do not grant coverage.

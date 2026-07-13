@@ -85,8 +85,9 @@ fix: ABC-1234 Handle timeout
 
 File rules run on current `HEAD` lines attributed to matching task commits.
 Tree rules may inspect broader context when their contract requires it, for
-example duplicate test files or entity field changes. Any uncommitted file makes
-validation fail. A task ID with no matching commits is an input error.
+example to determine whether a task newly introduced a duplicate test-file pair
+or changed entity fields. Any uncommitted file makes validation fail. A task ID
+with no matching commits is an input error.
 
 ### Output and exit codes
 

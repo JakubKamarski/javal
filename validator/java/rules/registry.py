@@ -23,7 +23,7 @@ from validator.java.rules.unused_import import UnusedImportRule
 
 RULE_DESCRIPTIONS: dict[str, str] = {
     "unused-imports": "Import declared but not referenced",
-    "java-naming-method-verb-prefix": "Method must start with an action verb (with framework exemptions)",
+    "java-naming-method-verb-prefix": "Method must start with an action verb (with framework, static-factory, and MethodSource exemptions)",
     "java-naming-method-map-style": "Map-style method names without verb prefix",
     "java-naming-method-bare-participle": "Bare participles/adjectives (distinct, sorted, empty, …)",
     "java-naming-variable-collection-type": "List / Set / Map embedded in variable name",
@@ -35,8 +35,8 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header or method signature",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-test-method-prefix": "Test method name must start with the method invoked in // WHEN",
-    "java-testing-duplicate-test-method": "Tests in one class that exercise the same method and path must be parameterized",
-    "java-testing-duplicate-it-and-test": "Same subject has both *Test and *IT files in the repo",
+    "java-testing-duplicate-test-method": "Equivalent normal-response tests with the same resolvable invocation signature must be parameterized",
+    "java-testing-duplicate-it-and-test": "Task introduces both *Test and *IT files for the same subject",
     "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods; internal *Service exempt when an ancestor in the injection chain has its required *IT",
     "java-jpa-entity-serial-version-uid": "JPA entity persistent field changes must update serialVersionUID",
 }

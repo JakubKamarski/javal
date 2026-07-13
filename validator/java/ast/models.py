@@ -9,6 +9,8 @@ class MethodDeclaration:
     line: int
     node: object
     is_configuration_bean: bool = False
+    is_static_factory: bool = False
+    is_method_source_provider: bool = False
     is_override: bool = False
     is_test: bool = False
     is_lifecycle: bool = False

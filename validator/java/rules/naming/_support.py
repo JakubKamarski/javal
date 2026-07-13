@@ -10,6 +10,7 @@ ALLOWED_METHOD_PREFIXES = (
     "compute",
     "convert",
     "count",
+    "decode",
     "execute",
     "process",
     "provide",

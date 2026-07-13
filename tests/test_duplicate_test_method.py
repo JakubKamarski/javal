@@ -18,7 +18,7 @@ def _findings(source: str):
     ]
 
 
-def _test_method(name: str, when: str) -> str:
+def _test_method(name: str, when: str, then: str = "") -> str:
     return f'''\
     @Test
     void {name}() {{
@@ -26,15 +26,16 @@ def _test_method(name: str, when: str) -> str:
         // WHEN
         {when}
         // THEN
+        {then}
     }}
 '''
 
 
 def _test_class(*methods: str) -> str:
-    return "class SampleServiceTest {\n" + "\n".join(methods) + "}\n"
+    return "class SampleServiceTest {\n    private Service service;\n\n" + "\n".join(methods) + "}\n"
 
 
-def test_flags_normal_response_tests_for_the_same_method_and_arity():
+def test_flags_equivalent_normal_response_tests_for_the_same_resolved_signature():
     source = _test_class(
         _test_method("findByCode_GivenFirstCode_WhenCalled_ThenReturnsValue", 'service.findByCode("A");'),
         _test_method("findByCode_GivenSecondCode_WhenCalled_ThenReturnsValue", 'service.findByCode("B");'),
@@ -44,7 +45,7 @@ def test_flags_normal_response_tests_for_the_same_method_and_arity():
 
     assert len(findings) == 1
     assert "2 test methods" in findings[0].summary
-    assert "findByCode/1" in findings[0].summary
+    assert "Service.findByCode(String)" in findings[0].summary
     assert "normal-response" in findings[0].summary
     assert "@ParameterizedTest" in findings[0].suggestion
 
@@ -79,7 +80,7 @@ def test_keeps_exception_and_normal_response_tests_separate():
     assert _findings(source) == []
 
 
-def test_flags_multiple_exception_tests_for_the_same_method_and_arity():
+def test_keeps_multiple_exception_tests_separate():
     source = _test_class(
         _test_method(
             "find_GivenMissingCode_WhenCalled_ThenThrows",
@@ -94,8 +95,7 @@ def test_flags_multiple_exception_tests_for_the_same_method_and_arity():
 
     findings = _findings(source)
 
-    assert len(findings) == 1
-    assert "exception" in findings[0].summary
+    assert findings == []
 
 
 def test_keeps_nested_test_classes_separate():
@@ -165,3 +165,29 @@ def test_reports_the_later_test_when_it_is_in_task_scope(tmp_path):
 
     assert len(findings) == 1
     assert findings[0].line > 1
+
+
+def test_ignores_same_method_name_with_distinct_argument_types():
+    source = _test_class(
+        _test_method("find_GivenCode_WhenCalled_ThenReturnsValue", 'service.find("A");'),
+        _test_method("find_GivenId_WhenCalled_ThenReturnsValue", "service.find(1);"),
+    )
+
+    assert _findings(source) == []
+
+
+def test_ignores_same_signature_with_distinct_assertion_shapes():
+    source = _test_class(
+        _test_method(
+            "find_GivenFirstCase_WhenCalled_ThenReturnsValue",
+            'service.find("A");',
+            'assertThat(result).isEqualTo("A");',
+        ),
+        _test_method(
+            "find_GivenSecondCase_WhenCalled_ThenReturnsValue",
+            'service.find("B");',
+            'assertThat(result).isEmpty();',
+        ),
+    )
+
+    assert _findings(source) == []

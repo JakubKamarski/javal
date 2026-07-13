@@ -4,13 +4,14 @@ from dataclasses import dataclass
 from typing import Literal
 
 from validator.java.ast.gwt import line_in_range
-from validator.java.ast.variables import descendants
+from validator.java.ast.variables import declaration_type_text, descendants, variable_names
 from validator.java.context import JavaFileContext
 
 EXCLUDED_INVOCATION_METHODS = frozenset(
     {
         "assertThat",
         "assertThatThrownBy",
+        "catchThrowable",
         "assertEquals",
         "assertTrue",
         "assertFalse",
@@ -47,6 +48,7 @@ EXCEPTION_ASSERTION_METHODS = frozenset(
         "assertThrows",
         "assertThrowsExactly",
         "assertThatThrownBy",
+        "catchThrowable",
     }
 )
 
@@ -63,6 +65,8 @@ class TestAction:
     method_name: str
     argument_count: int
     path: Literal["normal", "exception"]
+    receiver_type: str | None = None
+    argument_types: tuple[str, ...] = ()
 
 
 def action_from_when(
@@ -80,14 +84,14 @@ def action_from_when(
             continue
         if not line_in_range(statement.start_point[0] + 1, when_range):
             continue
-        actions.extend(_statement_actions(context, statement))
+        actions.extend(_statement_actions(context, statement, method_node))
 
     if len(actions) != 1:
         return None
     return actions[0]
 
 
-def _statement_actions(context: JavaFileContext, statement_node) -> list[TestAction]:
+def _statement_actions(context: JavaFileContext, statement_node, method_node) -> list[TestAction]:
     invocations = [node for node in descendants(statement_node) if node.type == "method_invocation"]
     exception_wrappers = [
         invocation
@@ -97,24 +101,18 @@ def _statement_actions(context: JavaFileContext, statement_node) -> list[TestAct
     if exception_wrappers:
         if len(exception_wrappers) != 1:
             return []
-        return _exception_actions(context, exception_wrappers[0])
+        return _exception_actions(context, exception_wrappers[0], method_node)
 
     actions: list[TestAction] = []
     for invocation in _outermost_invocations(invocations):
         method_name = _invocation_method_name(context, invocation)
         if method_name is None or method_name in EXCLUDED_INVOCATION_METHODS:
             continue
-        actions.append(
-            TestAction(
-                method_name=method_name,
-                argument_count=_argument_count(invocation),
-                path="normal",
-            )
-        )
+        actions.append(_test_action(context, invocation, method_name, "normal", method_node))
     return actions
 
 
-def _exception_actions(context: JavaFileContext, exception_wrapper) -> list[TestAction]:
+def _exception_actions(context: JavaFileContext, exception_wrapper, method_node) -> list[TestAction]:
     actions: list[TestAction] = []
     for lambda_expression in descendants(exception_wrapper):
         if lambda_expression.type != "lambda_expression":
@@ -125,13 +123,7 @@ def _exception_actions(context: JavaFileContext, exception_wrapper) -> list[Test
             method_name = _invocation_method_name(context, invocation)
             if method_name is None or method_name in EXCLUDED_INVOCATION_METHODS:
                 continue
-            actions.append(
-                TestAction(
-                    method_name=method_name,
-                    argument_count=_argument_count(invocation),
-                    path="exception",
-                )
-            )
+            actions.append(_test_action(context, invocation, method_name, "exception", method_node))
     return actions
 
 
@@ -154,6 +146,108 @@ def _argument_count(invocation) -> int:
     if argument_list is None:
         return 0
     return sum(child.is_named for child in argument_list.children)
+
+
+def _test_action(
+    context: JavaFileContext,
+    invocation,
+    method_name: str,
+    path: Literal["normal", "exception"],
+    method_node,
+) -> TestAction:
+    receiver_type = _receiver_type(context, invocation, method_node)
+    argument_types = _argument_types(context, invocation, method_node)
+    return TestAction(
+        method_name=method_name,
+        argument_count=_argument_count(invocation),
+        path=path,
+        receiver_type=receiver_type,
+        argument_types=argument_types or (),
+    )
+
+
+def _receiver_type(context: JavaFileContext, invocation, method_node) -> str | None:
+    children = invocation.children
+    argument_index = next(
+        (index for index, child in enumerate(children) if child.type == "argument_list"),
+        0,
+    )
+    if argument_index < 3 or children[0].type != "identifier":
+        return None
+    return _variable_types(context, method_node).get(context.text(children[0]))
+
+
+def _argument_types(context: JavaFileContext, invocation, method_node) -> tuple[str, ...] | None:
+    argument_list = next(
+        (child for child in invocation.children if child.type == "argument_list"),
+        None,
+    )
+    if argument_list is None:
+        return ()
+    variable_types = _variable_types(context, method_node)
+    resolved = tuple(
+        _expression_type(context, child, variable_types)
+        for child in argument_list.children
+        if child.is_named
+    )
+    return None if any(item is None for item in resolved) else resolved
+
+
+def _variable_types(context: JavaFileContext, method_node) -> dict[str, str]:
+    types: dict[str, str] = {}
+    for node_type in ("field_declaration", "formal_parameter", "local_variable_declaration"):
+        for declaration in context.walk(node_type):
+            if node_type == "local_variable_declaration" and not _is_within(declaration, method_node):
+                continue
+            type_text = declaration_type_text(context, declaration)
+            if not type_text:
+                continue
+            for name, _line in variable_names(context, declaration):
+                types.setdefault(name, type_text)
+    return types
+
+
+def _is_within(node, ancestor) -> bool:
+    current = node.parent
+    while current is not None:
+        if current == ancestor:
+            return True
+        current = current.parent
+    return False
+
+
+def _expression_type(context: JavaFileContext, node, variable_types: dict[str, str]) -> str | None:
+    if node.type == "identifier":
+        return variable_types.get(context.text(node))
+    if node.type == "string_literal":
+        return "String"
+    if node.type == "character_literal":
+        return "char"
+    if node.type == "decimal_integer_literal":
+        return "int"
+    if node.type == "decimal_floating_point_literal":
+        return "double"
+    if node.type in {"true", "false"}:
+        return "boolean"
+    if node.type == "object_creation_expression":
+        return next(
+            (
+                context.text(child)
+                for child in node.children
+                if child.type in {"type_identifier", "generic_type"}
+            ),
+            None,
+        )
+    if node.type == "cast_expression":
+        return next(
+            (
+                context.text(child)
+                for child in node.children
+                if child.type in {"type_identifier", "generic_type"}
+            ),
+            None,
+        )
+    return None
 
 
 def _outermost_invocations(invocations: list) -> list:

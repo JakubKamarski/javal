@@ -130,10 +130,10 @@ def test_analyze_java_tree_flags_preexisting_pair_when_task_adds_it_after_unit_t
 
     findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
     assert len(findings) == 1
-    assert findings[0].file.endswith("SampleTrackerServiceTest.java")
+    assert findings[0].file.endswith("SampleTrackerServiceIT.java")
 
 
-def test_analyze_java_tree_flags_preexisting_pair_globally_even_when_task_touches_unrelated_file(
+def test_analyze_java_tree_ignores_preexisting_pair_when_task_touches_unrelated_file(
     tmp_path,
 ):
     task_id = "ABC-9999"
@@ -148,5 +148,4 @@ def test_analyze_java_tree_flags_preexisting_pair_globally_even_when_task_touche
     report = analyze_java_tree(tmp_path, task_id=task_id)
 
     findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
-    assert len(findings) == 1
-    assert findings[0].file.endswith("SampleTrackerServiceTest.java")
+    assert findings == []
