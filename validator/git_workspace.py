@@ -4,6 +4,11 @@ import os
 import subprocess
 from pathlib import Path
 
+from validator.courier_repo import is_courier_dedicated_repo
+from validator.git_commit_message import (
+    CHECK_ID as COMMIT_MESSAGE_CHECK_ID,
+    build_task_commit_courier_symbol_findings,
+)
 from validator.git_scope import TaskScope
 from validator.report import Finding, Report
 
@@ -75,4 +80,11 @@ class GitWorkspaceAnalyzer:
         finding = build_uncommitted_changes_finding(target)
         if finding is not None:
             report.add_finding(finding)
+
+        if scope is not None and scope.commits and is_courier_dedicated_repo(target):
+            report.add_check(COMMIT_MESSAGE_CHECK_ID)
+            commit_findings = build_task_commit_courier_symbol_findings(target, scope)
+            for commit_finding in commit_findings:
+                report.add_finding(commit_finding)
+
         return report

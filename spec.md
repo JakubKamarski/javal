@@ -55,6 +55,15 @@ snapshots.
 tracked or untracked changes. Binary untracked files are not decoded for line
 scope, but they still make the repository dirty.
 
+`git-commit-no-courier-symbol` runs only in courier-dedicated repositories
+detected from `src/main/resources/application.properties` or `.yml`: when
+`server.servlet.context-path` contains the `courier` keyword. It inspects task
+commit subjects: after the task ID, only `<Capitalized message>` or
+`HOTFIX | <Capitalized message>` pipe segments are allowed. Extra MR-style
+courier or service segments fail validation. Deployment-config commits that
+include `FC` or `DC` are exempt. In other repositories, courier symbol segments
+in commit subjects are optional and not validated.
+
 ## Architecture
 
 ```text
