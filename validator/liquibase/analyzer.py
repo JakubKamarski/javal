@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from unicodedata import combining, normalize
 from xml.parsers.expat import ExpatError
 
 from validator.analyzer_base import allowed_lines_for, changed_files_in_scope, empty_task_scope_pass
@@ -164,7 +165,7 @@ class LiquibaseAnalyzer:
                     )
                 )
                 continue
-            if expected and changeset.author != expected:
+            if expected and not _author_names_match(changeset.author, expected):
                 suggestion = (
                     f"Set author=\"{expected}\" to match the introducing commit author."
                     if expected_label == "commit author"
@@ -205,6 +206,32 @@ def discover_changelog_files(root: Path) -> list[Path]:
 
 def _changeset_introduced_by_task(changeset: ChangeSet, allowed_lines: set[int]) -> bool:
     return changeset.start_line in allowed_lines
+
+
+def _author_names_match(author: str, expected_author: str) -> bool:
+    normalized_author = _normalize_author_name(author)
+    normalized_expected_author = _normalize_author_name(expected_author)
+    if normalized_author == normalized_expected_author:
+        return True
+
+    author_given_name, author_surname = _split_author_name(normalized_author)
+    expected_given_name, expected_surname = _split_author_name(normalized_expected_author)
+    if author_given_name != expected_given_name or not author_surname or not expected_surname:
+        return False
+
+    expected_surname_components = expected_surname.split("-")
+    return len(expected_surname_components) > 1 and author_surname in expected_surname_components
+
+
+def _normalize_author_name(name: str) -> str:
+    normalized = normalize("NFKD", name).casefold()
+    without_diacritics = "".join(character for character in normalized if not combining(character))
+    return " ".join(without_diacritics.split())
+
+
+def _split_author_name(name: str) -> tuple[str, str]:
+    given_name, separator, surname = name.partition(" ")
+    return given_name, surname if separator else ""
 
 
 def _changelog_files_in_scope(

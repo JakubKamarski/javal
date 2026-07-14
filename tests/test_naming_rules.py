@@ -203,6 +203,16 @@ def test_decode_prefix_is_allowed(analyzer):
     assert not any(finding.check == "java-naming-method-verb-prefix" for finding in findings)
 
 
+def test_ship_prefix_is_allowed_without_allowing_shipment_nouns(analyzer):
+    source = "class Shipper { void ship() {} void shipShipment() {} void shipment() {} }"
+
+    findings = analyzer.analyze_source("Shipper.java", source)
+    verb_prefix = [finding.summary for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+
+    assert not any("ship'" in summary or "shipShipment" in summary for summary in verb_prefix)
+    assert any("shipment" in summary for summary in verb_prefix)
+
+
 def test_non_bean_method_in_configuration_class_still_requires_verb_prefix(analyzer):
     summaries = violation_summaries(analyzer, "ConfigurationBeanSample.java", "java-naming-method-verb-prefix")
     assert not any("synchronizeStatuses" in summary for summary in summaries)

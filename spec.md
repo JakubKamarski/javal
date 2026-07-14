@@ -172,8 +172,10 @@ regular expressions. Attributes may span lines. Malformed XML produces a
 finding at the parser line instead of a traceback.
 
 For a task-introduced changeSet, `author` must match the responsible task commit
-author. An uncommitted changeSet uses local `git config user.name`. Editing only
-the body of a pre-existing changeSet does not revalidate its author.
+author case- and diacritic-insensitively. A person with a hyphenated surname may
+use either surname component when the given name matches. An uncommitted changeSet
+uses local `git config user.name`. Editing only the body of a pre-existing changeSet
+does not revalidate its author.
 
 ## Reporting
 

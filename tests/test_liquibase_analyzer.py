@@ -3,8 +3,11 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from validator.analyze import analyze_repo
 from validator.git_scope import parse_unified_diff
+from validator.liquibase.analyzer import _author_names_match
 from validator.liquibase.changeset import parse_changesets
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "liquibase"
@@ -308,3 +311,20 @@ def test_flags_wrong_author_on_uncommitted_changeset_using_local_git_config(tmp_
     assert "Wrong Author" in liquibase_findings[0].summary
     assert "Test User" in liquibase_findings[0].summary
     assert "git user.name" in liquibase_findings[0].summary
+
+
+@pytest.mark.parametrize(
+    "author",
+    [
+        "KAROL GASIENICA-FRONEK",
+        "karol gasienica",
+        "Karol Fronek",
+    ],
+)
+def test_author_match_ignores_case_diacritics_and_allows_hyphenated_surname_components(author):
+    assert _author_names_match(author, "Karol Gąsienica-Fronek")
+
+
+@pytest.mark.parametrize("author", ["Kamil Gasienica", "Karol Kowalski"])
+def test_author_match_rejects_different_given_name_or_surname(author):
+    assert not _author_names_match(author, "Karol Gąsienica-Fronek")

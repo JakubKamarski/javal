@@ -38,6 +38,7 @@ ALLOWED_METHOD_PREFIXES = (
     "read",
     "save",
     "send",
+    "ship",
     "stub",
     "call",
     "write",
