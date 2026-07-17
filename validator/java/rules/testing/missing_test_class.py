@@ -5,6 +5,7 @@ from pathlib import Path
 from validator.git_scope import TaskScope
 from validator.java.ast import (
     has_query_annotation,
+    has_spring_boundary_annotation,
     has_task_changed_query_method,
     is_abstract_top_level_type,
     is_public_top_level_type,
@@ -14,9 +15,11 @@ from validator.java.rules.applicability import context_for
 from validator.java.rules.base import TreeJavaRule
 from validator.java.rules.testing._support import (
     IT_SUFFIX,
+    UNIT_TEST_SUFFIX,
     TESTING_SUGGESTION,
     expected_test_class_name,
     is_main_source_file,
+    required_test_exists,
     resolve_expected_test_path,
     subject_test_requirement,
 )
@@ -100,7 +103,7 @@ class MissingTestClassRule(TreeJavaRule):
 
         test_class_name = expected_test_class_name(class_name, requirement)
         expected_test_path = resolve_expected_test_path(source_path, test_class_name)
-        if expected_test_path.is_file():
+        if required_test_exists(source_path, class_name, requirement):
             return None
 
         if (
@@ -117,6 +120,11 @@ class MissingTestClassRule(TreeJavaRule):
         ):
             return None
 
+        if requirement.subject_suffix == "Service" and self._is_framework_free_service_with_unit_test(
+            source_path, class_name, context
+        ):
+            return None
+
         return Finding(
             severity="warning",
             check=self.check_id,
@@ -129,3 +137,16 @@ class MissingTestClassRule(TreeJavaRule):
             details=f"Expected test file: {expected_test_path.name}",
             suggestion=TESTING_SUGGESTION,
         )
+
+    def _is_framework_free_service_with_unit_test(
+        self,
+        source_path: Path,
+        class_name: str,
+        context: JavaFileContext,
+    ) -> bool:
+        if has_spring_boundary_annotation(context, class_name):
+            return False
+        unit_test_path = resolve_expected_test_path(
+            source_path, f"{class_name}{UNIT_TEST_SUFFIX}"
+        )
+        return unit_test_path.is_file()

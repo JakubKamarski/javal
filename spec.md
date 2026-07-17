@@ -156,7 +156,13 @@ the authoritative inventory.
 - Duplicate `*Test` and `*IT` detection scans eligible test paths but reports only a pair newly introduced by a task commit.
 - Missing-test detection starts from task-changed production classes. Injection
   coverage resolves types by package, explicit import, and source root; ambiguous
-  same-named types do not grant coverage.
+  same-named types do not grant coverage. An `IT` requirement is satisfied by any
+  test file named after the subject and ending in `IT` (for example a
+  `<Subject>MockedIT`), not only the exact `<Subject>IT`. A framework-free
+  `*Service` — one with no Spring boundary annotation (`@Service`, `@Component`,
+  `@Repository`, `@Controller`, `@RestController`, `@Configuration`,
+  `@Transactional`, `@Entity`) — is exempt from the integration-test requirement
+  when it has a unit `*Test`, matching the shared-library-logic testing policy.
 - Entity validation compares persistent field signatures before and after each
   task commit. Added, removed, renamed, or retyped fields require a changed
   `serialVersionUID` in that commit. Worktree changes compare `HEAD` with the

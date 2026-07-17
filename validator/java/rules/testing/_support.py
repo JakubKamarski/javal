@@ -88,6 +88,27 @@ def resolve_expected_test_path(main_source: Path, test_class_name: str) -> Path:
     return main_source.parent / f"{test_class_name}.java"
 
 
+def required_test_exists(
+    main_source: Path, class_name: str, requirement: SubjectTestRequirement
+) -> bool:
+    test_class_name = expected_test_class_name(class_name, requirement)
+    expected_test_path = resolve_expected_test_path(main_source, test_class_name)
+    if expected_test_path.is_file():
+        return True
+    if requirement.test_suffix == IT_SUFFIX:
+        return _has_integration_test_variant(expected_test_path.parent, class_name)
+    return False
+
+
+def _has_integration_test_variant(test_dir: Path, class_name: str) -> bool:
+    if not test_dir.is_dir():
+        return False
+    for candidate in test_dir.glob(f"{class_name}*{IT_SUFFIX}.java"):
+        if candidate.is_file():
+            return True
+    return False
+
+
 def _map_main_source_to_test_source(main_source: Path, test_class_name: str) -> Path | None:
     resolved = main_source.resolve()
     parts = list(resolved.parts)

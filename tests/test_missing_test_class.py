@@ -75,6 +75,25 @@ def test_missing_test_class_rule_flags_standalone_service_without_it():
     assert any("StandaloneServiceIT" in finding.summary for finding in findings)
 
 
+def test_missing_test_class_rule_accepts_integration_test_variant():
+    analyzer = JavaAnalyzer(tree_rules=[MissingTestClassRule()])
+    findings = findings_for(analyzer)
+    assert all("PaymentGatewayService" not in finding.summary for finding in findings)
+
+
+def test_missing_test_class_rule_exempts_framework_free_service_with_unit_test():
+    analyzer = JavaAnalyzer(tree_rules=[MissingTestClassRule()])
+    findings = findings_for(analyzer)
+    assert all("LibraryOrchestratorService" not in finding.summary for finding in findings)
+
+
+def test_missing_test_class_rule_flags_spring_service_with_only_unit_test():
+    analyzer = JavaAnalyzer(tree_rules=[MissingTestClassRule()])
+    findings = findings_for(analyzer)
+    assert any("SpringBoundaryService" in finding.summary for finding in findings)
+    assert any("SpringBoundaryServiceIT" in finding.summary for finding in findings)
+
+
 def _git(repo: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True)
 

@@ -28,6 +28,7 @@ from validator.java.ast.entities import (
 )
 from validator.java.ast.modifiers import (
     has_query_annotation,
+    has_spring_boundary_annotation,
     has_task_changed_query_method,
     is_abstract_top_level_type,
     is_public_top_level_type,

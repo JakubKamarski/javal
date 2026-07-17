@@ -50,6 +50,26 @@ def is_public_top_level_type(context: JavaFileContext, type_name: str) -> bool:
     return False
 
 
+SPRING_BOUNDARY_ANNOTATIONS = (
+    "Service",
+    "Component",
+    "Repository",
+    "Controller",
+    "RestController",
+    "Configuration",
+    "Transactional",
+    "Entity",
+)
+
+
+def has_spring_boundary_annotation(context: JavaFileContext, type_name: str) -> bool:
+    for node_type in ("class_declaration", "interface_declaration"):
+        node = top_level_type_name(context, node_type, type_name)
+        if node is not None:
+            return node_has_annotation(context, node, *SPRING_BOUNDARY_ANNOTATIONS)
+    return False
+
+
 def is_abstract_top_level_type(context: JavaFileContext, type_name: str) -> bool:
     node = top_level_type_name(context, "class_declaration", type_name)
     if node is None:

@@ -37,7 +37,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-testing-test-method-prefix": "Test method name must start with the method invoked in // WHEN",
     "java-testing-duplicate-test-method": "Equivalent normal-response tests with the same resolvable invocation signature must be parameterized",
     "java-testing-duplicate-it-and-test": "Task introduces both *Test and *IT files for the same subject",
-    "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods; internal *Service exempt when an ancestor in the injection chain has its required *IT",
+    "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods; an IT requirement is satisfied by any <Subject>*IT variant (e.g. *MockedIT); internal *Service exempt when an ancestor in the injection chain has its required *IT, and framework-free *Service (no Spring boundary annotation) exempt when it has a unit *Test",
     "java-jpa-entity-serial-version-uid": "JPA entity persistent field changes must update serialVersionUID",
 }
 

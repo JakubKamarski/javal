@@ -203,6 +203,25 @@ def test_decode_prefix_is_allowed(analyzer):
     assert not any(finding.check == "java-naming-method-verb-prefix" for finding in findings)
 
 
+def test_standard_action_verbs_are_allowed(analyzer):
+    source = """
+class ActionVerbSample {
+    void register() {}
+    void registerShipment() {}
+    void flush() {}
+    void flushAndClear() {}
+    void insertIgnoringWaybillConflict() {}
+    void setInitialStatus() {}
+    void clearCache() {}
+}
+"""
+
+    findings = analyzer.analyze_source("ActionVerbSample.java", source)
+    verb_prefix = [finding for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+
+    assert verb_prefix == []
+
+
 def test_ship_prefix_is_allowed_without_allowing_shipment_nouns(analyzer):
     source = "class Shipper { void ship() {} void shipShipment() {} void shipment() {} }"
 

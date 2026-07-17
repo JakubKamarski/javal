@@ -9,9 +9,8 @@ from validator.java.ast.variables import declaration_type_text, is_constant_fiel
 from validator.java.context import JavaFileContext
 from validator.java.rules.applicability import context_for
 from validator.java.rules.testing._support import (
-    expected_test_class_name,
     is_test_source_file,
-    resolve_expected_test_path,
+    required_test_exists,
     subject_test_requirement,
 )
 
@@ -249,6 +248,4 @@ def has_required_it_file(
     if requirement.requires_public_class and not is_public_top_level_type(context, class_name):
         return False
 
-    test_class_name = expected_test_class_name(class_name, requirement)
-    expected_test_path = resolve_expected_test_path(source_path, test_class_name)
-    return expected_test_path.is_file()
+    return required_test_exists(source_path, class_name, requirement)
