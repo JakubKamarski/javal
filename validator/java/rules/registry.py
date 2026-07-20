@@ -13,6 +13,7 @@ from validator.java.rules.naming.variable_hungarian_notation import VariableHung
 from validator.java.rules.style.disallowed_comment import DisallowedCommentRule
 from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRule
 from validator.java.rules.style.local_variable_no_var import LocalVariableNoVarRule
+from validator.java.rules.style.type_header_one_line import TypeHeaderOneLineRule
 from validator.java.rules.entity.serial_version_uid_on_change import EntitySerialVersionUidOnChangeRule
 from validator.java.rules.testing.duplicate_it_and_test import DuplicateItAndTestRule
 from validator.java.rules.testing.duplicate_test_method import DuplicateTestMethodRule
@@ -33,6 +34,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-local-variable-no-var": "Local variables must use explicit types (var is forbidden)",
     "java-clean-code-comment": "Only NOSONAR, deprecation, public API javadoc, GWT markers, and task-referenced TODO/FIXME are allowed",
     "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header or method signature",
+    "java-style-type-header-one-line": "Type declaration headers that fit within 120 columns must remain on one line",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-test-method-prefix": "Test method name must start with the method invoked in // WHEN",
     "java-testing-duplicate-test-method": "Equivalent normal-response tests with the same resolvable invocation signature must be parameterized",
@@ -82,6 +84,7 @@ def default_java_rules() -> list[JavaRule]:
         LocalVariableNoVarRule(),
         DisallowedCommentRule(),
         GenericTypeNosonarRule(),
+        TypeHeaderOneLineRule(),
         TestWhenGenericVariableRule(),
         TestMethodPrefixRule(),
         DuplicateTestMethodRule(),

@@ -151,6 +151,15 @@ Rules are registered explicitly in `validator/java/rules/registry.py`. Explicit
 registration keeps order and descriptions deterministic. `javal list-rules` is
 the authoritative inventory.
 
+### Type declaration headers
+
+`java-style-type-header-one-line` keeps class, interface, record, enum, and
+annotation-type declarations on one physical line from their first modifier
+through the opening brace when the compact form is at most 120 columns. Leading
+annotations and Javadocs are excluded. The projected length preserves declaration
+indentation and joins trimmed header lines with one space. Headers whose compact
+form exceeds 120 columns may remain either single-line or multiline.
+
 ### Tree-rule specifics
 
 - Duplicate `*Test` and `*IT` detection scans eligible test paths but reports only a pair newly introduced by a task commit.

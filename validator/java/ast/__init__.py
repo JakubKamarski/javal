@@ -45,11 +45,13 @@ from validator.java.ast.models import (
     VariableDeclaration,
 )
 from validator.java.ast.types import (
+    TypeDeclarationHeader,
     declaration_header_line_numbers,
     declaration_simple_name,
     header_has_nosonar,
     is_standard_type_parameter_name,
     iter_generic_type_declarations,
+    iter_multiline_type_declaration_headers,
     iter_type_parameter_names,
 )
 from validator.java.ast.variables import (
@@ -63,6 +65,7 @@ __all__ = [
     "ImportDeclaration",
     "LocalVariableDeclaration",
     "MethodDeclaration",
+    "TypeDeclarationHeader",
     "VarDeclaration",
     "VariableDeclaration",
     "collect_identifier_usages",
@@ -85,6 +88,7 @@ __all__ = [
     "header_has_nosonar",
     "is_standard_type_parameter_name",
     "iter_generic_type_declarations",
+    "iter_multiline_type_declaration_headers",
     "iter_type_parameter_names",
     "has_task_changed_query_method",
     "iter_query_method_declarations",

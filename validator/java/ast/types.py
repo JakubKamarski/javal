@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import re
 
 from validator.java.context import JavaFileContext
@@ -13,6 +14,25 @@ _GENERIC_TYPE_DECLARATIONS = (
     "record_declaration",
 )
 _BODY_NODE_TYPES = frozenset({"class_body", "interface_body"})
+_TYPE_DECLARATIONS = (
+    "class_declaration",
+    "interface_declaration",
+    "record_declaration",
+    "enum_declaration",
+    "annotation_type_declaration",
+)
+_TYPE_BODY_NODE_TYPES = frozenset(
+    {"class_body", "interface_body", "enum_body", "annotation_type_body"}
+)
+_TYPE_KEYWORD_NODE_TYPES = frozenset({"class", "interface", "record", "enum", "@interface"})
+_ANNOTATION_NODE_TYPES = frozenset({"annotation", "marker_annotation"})
+
+
+@dataclass(frozen=True)
+class TypeDeclarationHeader:
+    name: str
+    continuation_line: int
+    projected_line_length: int
 
 
 def is_standard_type_parameter_name(name: str) -> bool:
@@ -48,6 +68,59 @@ def declaration_header_line_numbers(node) -> set[int]:
         return {start_line}
     end_line = body.start_point[0] + 1
     return set(range(start_line, end_line + 1))
+
+
+def iter_multiline_type_declaration_headers(context: JavaFileContext):
+    for node in context.walk(*_TYPE_DECLARATIONS):
+        body = next(
+            (child for child in node.children if child.type in _TYPE_BODY_NODE_TYPES),
+            None,
+        )
+        if body is None:
+            continue
+
+        header_start = _type_header_start(node)
+        if header_start is None or header_start.start_point[0] == body.start_point[0]:
+            continue
+
+        header_text = context.source_bytes[header_start.start_byte : body.start_byte + 1].decode(
+            "utf-8"
+        )
+        header_lines = header_text.splitlines()
+        compact_parts = [line.strip() for line in header_lines if line.strip()]
+        if len(compact_parts) < 2:
+            continue
+
+        indentation = _source_indentation(context, header_start.start_byte)
+        continuation_offset = next(
+            index for index, line in enumerate(header_lines[1:], start=1) if line.strip()
+        )
+        yield TypeDeclarationHeader(
+            name=declaration_simple_name(context, node),
+            continuation_line=header_start.start_point[0] + continuation_offset + 1,
+            projected_line_length=len(indentation.expandtabs(4)) + len(" ".join(compact_parts)),
+        )
+
+
+def _type_header_start(node):
+    modifiers = next((child for child in node.children if child.type == "modifiers"), None)
+    if modifiers is not None:
+        first_modifier = next(
+            (child for child in modifiers.children if child.type not in _ANNOTATION_NODE_TYPES),
+            None,
+        )
+        if first_modifier is not None:
+            return first_modifier
+    return next(
+        (child for child in node.children if child.type in _TYPE_KEYWORD_NODE_TYPES),
+        None,
+    )
+
+
+def _source_indentation(context: JavaFileContext, start_byte: int) -> str:
+    line_start = context.source_bytes.rfind(b"\n", 0, start_byte) + 1
+    line_prefix = context.source_bytes[line_start:start_byte].decode("utf-8")
+    return line_prefix[: len(line_prefix) - len(line_prefix.lstrip(" \t"))]
 
 
 def method_signature_line_numbers(node) -> set[int]:
