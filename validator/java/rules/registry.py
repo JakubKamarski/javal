@@ -15,6 +15,9 @@ from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRu
 from validator.java.rules.style.local_variable_no_var import LocalVariableNoVarRule
 from validator.java.rules.style.type_header_one_line import TypeHeaderOneLineRule
 from validator.java.rules.entity.serial_version_uid_on_change import EntitySerialVersionUidOnChangeRule
+from validator.java.rules.spring.configuration_proxy_bean_methods import (
+    SpringConfigurationProxyBeanMethodsRule,
+)
 from validator.java.rules.testing.duplicate_it_and_test import DuplicateItAndTestRule
 from validator.java.rules.testing.duplicate_test_method import DuplicateTestMethodRule
 from validator.java.rules.testing.missing_test_class import MissingTestClassRule
@@ -41,6 +44,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-testing-duplicate-it-and-test": "Task introduces both *Test and *IT files for the same subject",
     "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods; an IT requirement is satisfied by any <Subject>*IT variant (e.g. *MockedIT); internal *Service exempt when an ancestor in the injection chain has its required *IT, and framework-free *Service (no Spring boundary annotation) exempt when it has a unit *Test",
     "java-jpa-entity-serial-version-uid": "JPA entity persistent field changes must update serialVersionUID",
+    "spring-configuration-proxy-bean-methods": "@Configuration with no inter-bean method calls should set proxyBeanMethods = false; proxyBeanMethods = false is unsafe when a @Bean method calls another @Bean method of the same class",
 }
 
 RULE_MODULE_EXCLUDES = frozenset(
@@ -88,6 +92,7 @@ def default_java_rules() -> list[JavaRule]:
         TestWhenGenericVariableRule(),
         TestMethodPrefixRule(),
         DuplicateTestMethodRule(),
+        SpringConfigurationProxyBeanMethodsRule(),
     ]
 
 
