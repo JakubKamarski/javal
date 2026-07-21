@@ -67,6 +67,7 @@ class TestAction:
     path: Literal["normal", "exception"]
     line: int
     receiver_name: str | None = None
+    inline_receiver_method_name: str | None = None
     receiver_type: str | None = None
     argument_types: tuple[str, ...] = ()
 
@@ -196,6 +197,7 @@ def _test_action(
         path=path,
         line=invocation.start_point[0] + 1,
         receiver_name=_receiver_name(context, invocation),
+        inline_receiver_method_name=_inline_receiver_method_name(context, invocation),
         receiver_type=receiver_type,
         argument_types=argument_types or (),
     )
@@ -209,6 +211,16 @@ def _receiver_name(context: JavaFileContext, invocation) -> str | None:
     if argument_index < 3 or invocation.children[0].type != "identifier":
         return None
     return context.text(invocation.children[0])
+
+
+def _inline_receiver_method_name(context: JavaFileContext, invocation) -> str | None:
+    argument_index = next(
+        (index for index, child in enumerate(invocation.children) if child.type == "argument_list"),
+        0,
+    )
+    if argument_index < 3 or invocation.children[0].type != "method_invocation":
+        return None
+    return _invocation_method_name(context, invocation.children[0])
 
 
 def _receiver_type(context: JavaFileContext, invocation, method_node) -> str | None:
@@ -304,4 +316,4 @@ def _outermost_invocations(invocations: list) -> list:
 
 
 def _is_nested_invocation(outer, inner) -> bool:
-    return outer.start_byte < inner.start_byte and outer.end_byte > inner.end_byte
+    return outer.start_byte <= inner.start_byte and outer.end_byte > inner.end_byte

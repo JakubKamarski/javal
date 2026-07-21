@@ -34,7 +34,24 @@ class TestOwnerConstructionRule(JavaRule):
                 continue
 
             action = action_from_when(context, method.node, when_range)
-            if action is None or action.receiver_name is None or action.receiver_type is None:
+            if action is None:
+                continue
+            if action.receiver_name is None:
+                if not self._is_inline_factory_owner(action.inline_receiver_method_name):
+                    continue
+                violations.append(
+                    RuleViolation(
+                        summary=(
+                            f"Test method '{method.name}' invokes '{action.method_name}' on an owner "
+                            f"initialized by '{action.inline_receiver_method_name}' in // WHEN; "
+                            "initialize its owner in // GIVEN."
+                        ),
+                        line=action.line,
+                        suggestion=TESTING_SUGGESTION,
+                    )
+                )
+                continue
+            if action.receiver_type is None:
                 continue
             if self._is_initialized_in_given(context, method.node, action.receiver_name, sections.get("GIVEN")):
                 continue
@@ -63,6 +80,10 @@ class TestOwnerConstructionRule(JavaRule):
             )
 
         return violations
+
+    @staticmethod
+    def _is_inline_factory_owner(method_name: str | None) -> bool:
+        return method_name is not None and method_name.startswith("build")
 
     def _is_initialized_in_given(
         self,

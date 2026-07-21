@@ -172,3 +172,26 @@ class SampleTest {
 
     assert len(summaries) == 1
     assert "subject.execute" in summaries[0]
+
+
+def test_flags_inline_factory_owner_initialized_in_when(analyzer):
+    source = """
+import org.junit.jupiter.api.Test;
+
+class PublishingServiceTest {
+    @Test
+    void publishPending_GivenRows_WhenCalled_ThenReturnsCount() {
+        // GIVEN
+        // WHEN
+        int published = buildService(buildConfig()).publishPending();
+        // THEN
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("PublishingServiceTest.java", source)
+    summaries = [finding.summary for finding in findings if finding.check == CHECK_ID]
+
+    assert len(summaries) == 1
+    assert "buildService" in summaries[0]
+    assert "// GIVEN" in summaries[0]

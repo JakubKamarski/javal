@@ -115,3 +115,25 @@ class PublishingRepositoryIT {
     findings = analyzer.analyze_source("PublishingRepositoryIT.java", source)
 
     assert not any(finding.check == CHECK_ID for finding in findings)
+
+
+def test_chained_factory_invocation_uses_the_final_method_as_the_tested_method(analyzer):
+    source = """
+import org.junit.jupiter.api.Test;
+
+class PublishingServiceTest {
+    @Test
+    void drainsPendingStatuses_GivenRows_WhenPublished_ThenReturnsCount() {
+        // GIVEN
+        // WHEN
+        int published = buildService(buildConfig()).publishPending();
+        // THEN
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("PublishingServiceTest.java", source)
+    summaries = [finding.summary for finding in findings if finding.check == CHECK_ID]
+
+    assert len(summaries) == 1
+    assert "publishPending" in summaries[0]
