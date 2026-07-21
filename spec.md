@@ -191,9 +191,12 @@ initialized fields, argument transformations, validation, and any additional sta
 - Every `@Test` and `@ParameterizedTest` must contain exactly one ordered
   `// GIVEN`, `// WHEN`, and `// THEN` section.
 - A test name starts with the method invoked in `// WHEN`.
-- The receiver of that invocation is initialized in `// GIVEN`, or is a
-  directly initialized `final` field in the test class. The latter is the
-  syntactic allowance for a stateless reusable test owner.
+- The receiver of that invocation is initialized in `// GIVEN`, is a directly
+  initialized `final` field in the test class, or is an annotated non-static
+  field in an integration test (`*IT` type or `*IT` slice annotation). The
+  latter two forms cover stateless reusable owners and framework-managed test
+  setup. A single meaningful callback action on a receiver type ending in
+  `Template` is the tested invocation; ambiguous callbacks are ignored.
 - Empty `List.of()`, `Map.of()`, and `Set.of()` calls use the corresponding
   `Collections.empty*()` factory instead.
 

@@ -110,8 +110,39 @@ def _statement_actions(context: JavaFileContext, statement_node, method_node) ->
         method_name = _invocation_method_name(context, invocation)
         if method_name is None or method_name in EXCLUDED_INVOCATION_METHODS:
             continue
+        template_actions = _template_callback_actions(context, invocation, method_node)
+        if template_actions is not None:
+            actions.extend(template_actions)
+            continue
         actions.append(_test_action(context, invocation, method_name, "normal", method_node))
     return actions
+
+
+def _template_callback_actions(context: JavaFileContext, invocation, method_node) -> list[TestAction] | None:
+    receiver_type = _receiver_type(context, invocation, method_node)
+    if receiver_type is None or not _is_template_type(receiver_type):
+        return None
+
+    callbacks = [node for node in descendants(invocation) if node.type == "lambda_expression"]
+    if not callbacks:
+        return None
+    if len(callbacks) != 1:
+        return []
+
+    actions = [
+        _test_action(context, nested, method_name, "normal", method_node)
+        for nested in _outermost_invocations(
+            [node for node in descendants(callbacks[0]) if node.type == "method_invocation"]
+        )
+        if (method_name := _invocation_method_name(context, nested)) is not None
+        and method_name not in EXCLUDED_INVOCATION_METHODS
+    ]
+    return actions if len(actions) == 1 else []
+
+
+def _is_template_type(type_text: str) -> bool:
+    simple_type = type_text.split("<", 1)[0].rsplit(".", 1)[-1]
+    return simple_type.endswith("Template")
 
 
 def _exception_actions(context: JavaFileContext, exception_wrapper, method_node) -> list[TestAction]:

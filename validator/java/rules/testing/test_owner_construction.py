@@ -7,7 +7,7 @@ from validator.java.ast import (
     parse_gwt_section_line_ranges,
 )
 from validator.java.ast.test_actions import action_from_when
-from validator.java.ast.modifiers import enclosing_class_declaration
+from validator.java.ast.modifiers import annotation_simple_name, enclosing_class_declaration
 from validator.java.ast.variables import variable_names
 from validator.java.context import JavaFileContext
 from validator.java.rules.base import JavaRule, RuleViolation
@@ -39,6 +39,12 @@ class TestOwnerConstructionRule(JavaRule):
             if self._is_initialized_in_given(context, method.node, action.receiver_name, sections.get("GIVEN")):
                 continue
             if self._is_directly_initialized_final_field(
+                context,
+                method.node,
+                action.receiver_name,
+            ):
+                continue
+            if self._is_framework_managed_integration_test_field(
                 context,
                 method.node,
                 action.receiver_name,
@@ -79,6 +85,27 @@ class TestOwnerConstructionRule(JavaRule):
                 return True
         return False
 
+    def _is_framework_managed_integration_test_field(
+        self,
+        context: JavaFileContext,
+        method_node,
+        receiver_name: str,
+    ) -> bool:
+        test_class = enclosing_class_declaration(method_node)
+        if test_class is None or not _is_integration_test(context, test_class):
+            return False
+
+        for field in context.walk("field_declaration"):
+            if enclosing_class_declaration(field) != test_class:
+                continue
+            if node_has_modifier(context, field, "static"):
+                continue
+            if receiver_name not in {name for name, _line in variable_names(context, field)}:
+                continue
+            if _has_annotation(field):
+                return True
+        return False
+
     def _is_directly_initialized_final_field(
         self,
         context: JavaFileContext,
@@ -108,3 +135,25 @@ class TestOwnerConstructionRule(JavaRule):
                 return True
             current = current.parent
         return False
+
+
+def _is_integration_test(context: JavaFileContext, test_class) -> bool:
+    class_name = next((context.text(child) for child in test_class.children if child.type == "identifier"), "")
+    if class_name.endswith("IT"):
+        return True
+
+    modifiers = next((child for child in test_class.children if child.type == "modifiers"), None)
+    if modifiers is None:
+        return False
+    return any(
+        (annotation_simple_name(context, child) or "").endswith("IT")
+        for child in modifiers.children
+        if child.type in ("marker_annotation", "annotation")
+    )
+
+
+def _has_annotation(field) -> bool:
+    modifiers = next((child for child in field.children if child.type == "modifiers"), None)
+    return modifiers is not None and any(
+        child.type in ("marker_annotation", "annotation") for child in modifiers.children
+    )

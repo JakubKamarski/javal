@@ -97,3 +97,78 @@ class SampleTest {
     findings = analyzer.analyze_source("SampleTest.java", source)
 
     assert not any(finding.check == CHECK_ID for finding in findings)
+
+
+def test_allows_annotated_owner_in_integration_test(analyzer):
+    source = """
+import org.junit.jupiter.api.Test;
+
+class SampleIT {
+    @FrameworkManaged
+    private Subject subject;
+
+    @Test
+    void execute_GivenInput_WhenCalled_ThenReturnsValue() {
+        // GIVEN
+        String input = "input";
+        // WHEN
+        subject.execute(input);
+        // THEN
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("SampleIT.java", source)
+
+    assert not any(finding.check == CHECK_ID for finding in findings)
+
+
+def test_allows_annotated_owner_in_integration_test_slice(analyzer):
+    source = """
+import org.junit.jupiter.api.Test;
+
+@FrameworkSliceIT
+class SampleTest {
+    @FrameworkManaged
+    private Subject subject;
+
+    @Test
+    void execute_GivenInput_WhenCalled_ThenReturnsValue() {
+        // GIVEN
+        String input = "input";
+        // WHEN
+        subject.execute(input);
+        // THEN
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("SampleTest.java", source)
+
+    assert not any(finding.check == CHECK_ID for finding in findings)
+
+
+def test_flags_annotated_owner_in_unit_test(analyzer):
+    source = """
+import org.junit.jupiter.api.Test;
+
+class SampleTest {
+    @FrameworkManaged
+    private Subject subject;
+
+    @Test
+    void execute_GivenInput_WhenCalled_ThenReturnsValue() {
+        // GIVEN
+        String input = "input";
+        // WHEN
+        subject.execute(input);
+        // THEN
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("SampleTest.java", source)
+    summaries = [finding.summary for finding in findings if finding.check == CHECK_ID]
+
+    assert len(summaries) == 1
+    assert "subject.execute" in summaries[0]
