@@ -160,6 +160,15 @@ annotations and Javadocs are excluded. The projected length preserves declaratio
 indentation and joins trimmed header lines with one space. Headers whose compact
 form exceeds 120 columns may remain either single-line or multiline.
 
+### Lombok simplifications
+
+`java-lombok-required-args-constructor` flags a constructor only when it directly assigns
+every uninitialized, non-static `final` field from identically named parameters and has no
+annotations or other logic. `java-lombok-static-factory` flags a static factory only when it
+is paired with that constructor shape and its sole action is to return a new enclosing-type
+instance with those parameters forwarded unchanged. Both checks deliberately skip annotations,
+initialized fields, argument transformations, validation, and any additional statement.
+
 ### Tree-rule specifics
 
 - Duplicate `*Test` and `*IT` detection scans eligible test paths but reports only a pair newly introduced by a task commit.

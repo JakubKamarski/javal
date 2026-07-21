@@ -13,6 +13,8 @@ from validator.java.rules.naming.variable_hungarian_notation import VariableHung
 from validator.java.rules.style.disallowed_comment import DisallowedCommentRule
 from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRule
 from validator.java.rules.style.local_variable_no_var import LocalVariableNoVarRule
+from validator.java.rules.style.lombok_required_args_constructor import LombokRequiredArgsConstructorRule
+from validator.java.rules.style.lombok_static_factory import LombokStaticFactoryRule
 from validator.java.rules.style.type_header_one_line import TypeHeaderOneLineRule
 from validator.java.rules.entity.serial_version_uid_on_change import EntitySerialVersionUidOnChangeRule
 from validator.java.rules.spring.configuration_proxy_bean_methods import (
@@ -35,6 +37,8 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-naming-local-variable-optional-prefix": "Optional<...> locals must use the optional prefix",
     "java-naming-constant-upper-snake": "Constants must use UPPER_SNAKE_CASE",
     "java-local-variable-no-var": "Local variables must use explicit types (var is forbidden)",
+    "java-lombok-required-args-constructor": "Constructors that only assign required fields should use Lombok @RequiredArgsConstructor",
+    "java-lombok-static-factory": "Direct static factories paired with Lombok-eligible constructors should use @RequiredArgsConstructor(staticName = ...)",
     "java-clean-code-comment": "Only NOSONAR, deprecation, public API javadoc, GWT markers, and task-referenced TODO/FIXME are allowed",
     "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header or method signature",
     "java-style-type-header-one-line": "Type declaration headers that fit within 120 columns must remain on one line",
@@ -86,6 +90,8 @@ def default_java_rules() -> list[JavaRule]:
         LocalVariableOptionalPrefixRule(),
         ConstantUpperSnakeCaseRule(),
         LocalVariableNoVarRule(),
+        LombokRequiredArgsConstructorRule(),
+        LombokStaticFactoryRule(),
         DisallowedCommentRule(),
         GenericTypeNosonarRule(),
         TypeHeaderOneLineRule(),
