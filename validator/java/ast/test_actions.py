@@ -65,6 +65,8 @@ class TestAction:
     method_name: str
     argument_count: int
     path: Literal["normal", "exception"]
+    line: int
+    receiver_name: str | None = None
     receiver_type: str | None = None
     argument_types: tuple[str, ...] = ()
 
@@ -161,20 +163,28 @@ def _test_action(
         method_name=method_name,
         argument_count=_argument_count(invocation),
         path=path,
+        line=invocation.start_point[0] + 1,
+        receiver_name=_receiver_name(context, invocation),
         receiver_type=receiver_type,
         argument_types=argument_types or (),
     )
 
 
-def _receiver_type(context: JavaFileContext, invocation, method_node) -> str | None:
-    children = invocation.children
+def _receiver_name(context: JavaFileContext, invocation) -> str | None:
     argument_index = next(
-        (index for index, child in enumerate(children) if child.type == "argument_list"),
+        (index for index, child in enumerate(invocation.children) if child.type == "argument_list"),
         0,
     )
-    if argument_index < 3 or children[0].type != "identifier":
+    if argument_index < 3 or invocation.children[0].type != "identifier":
         return None
-    return _variable_types(context, method_node).get(context.text(children[0]))
+    return context.text(invocation.children[0])
+
+
+def _receiver_type(context: JavaFileContext, invocation, method_node) -> str | None:
+    receiver_name = _receiver_name(context, invocation)
+    if receiver_name is None:
+        return None
+    return _variable_types(context, method_node).get(receiver_name)
 
 
 def _argument_types(context: JavaFileContext, invocation, method_node) -> tuple[str, ...] | None:

@@ -186,6 +186,17 @@ initialized fields, argument transformations, validation, and any additional sta
   `serialVersionUID` in that commit. Worktree changes compare `HEAD` with the
   current source.
 
+### Test and collection conventions
+
+- Every `@Test` and `@ParameterizedTest` must contain exactly one ordered
+  `// GIVEN`, `// WHEN`, and `// THEN` section.
+- A test name starts with the method invoked in `// WHEN`.
+- The receiver of that invocation is initialized in `// GIVEN`, or is a
+  directly initialized `final` field in the test class. The latter is the
+  syntactic allowance for a stateless reusable test owner.
+- Empty `List.of()`, `Map.of()`, and `Set.of()` calls use the corresponding
+  `Collections.empty*()` factory instead.
+
 ## Liquibase analysis
 
 Changelogs are XML files named `*-changelog.xml`, named `db-changelog.xml`, or

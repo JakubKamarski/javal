@@ -11,6 +11,7 @@ from validator.java.rules.naming.method_verb_prefix import MethodVerbPrefixRule
 from validator.java.rules.naming.variable_collection_type import VariableCollectionTypeInNameRule
 from validator.java.rules.naming.variable_hungarian_notation import VariableHungarianNotationRule
 from validator.java.rules.style.disallowed_comment import DisallowedCommentRule
+from validator.java.rules.style.empty_collection_static_factory import EmptyCollectionStaticFactoryRule
 from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRule
 from validator.java.rules.style.local_variable_no_var import LocalVariableNoVarRule
 from validator.java.rules.style.lombok_required_args_constructor import LombokRequiredArgsConstructorRule
@@ -22,8 +23,10 @@ from validator.java.rules.spring.configuration_proxy_bean_methods import (
 )
 from validator.java.rules.testing.duplicate_it_and_test import DuplicateItAndTestRule
 from validator.java.rules.testing.duplicate_test_method import DuplicateTestMethodRule
+from validator.java.rules.testing.gwt_sections import TestGwtSectionsRule
 from validator.java.rules.testing.missing_test_class import MissingTestClassRule
 from validator.java.rules.testing.test_method_prefix import TestMethodPrefixRule
+from validator.java.rules.testing.test_owner_construction import TestOwnerConstructionRule
 from validator.java.rules.testing.when_generic_variable import TestWhenGenericVariableRule
 from validator.java.rules.unused_import import UnusedImportRule
 
@@ -42,8 +45,11 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-clean-code-comment": "Only NOSONAR, deprecation, public API javadoc, GWT markers, and task-referenced TODO/FIXME are allowed",
     "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header or method signature",
     "java-style-type-header-one-line": "Type declaration headers that fit within 120 columns must remain on one line",
+    "java-style-empty-collection-static-factory": "Empty List.of(), Map.of(), and Set.of() must use Collections.empty*()",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
+    "java-testing-gwt-sections": "Test methods must contain one // GIVEN, // WHEN, and // THEN section in order",
     "java-testing-test-method-prefix": "Test method name must start with the method invoked in // WHEN",
+    "java-testing-test-owner-construction": "Tested instance must be initialized in // GIVEN or as a directly initialized final test-class field",
     "java-testing-duplicate-test-method": "Equivalent normal-response tests with the same resolvable invocation signature must be parameterized",
     "java-testing-duplicate-it-and-test": "Task introduces both *Test and *IT files for the same subject",
     "java-testing-missing-test-class": "Production classes covered by testing rules must have the required *IT or *Test counterpart; repositories only when task changes custom @Query methods; an IT requirement is satisfied by any <Subject>*IT variant (e.g. *MockedIT); internal *Service exempt when an ancestor in the injection chain has its required *IT, and framework-free *Service (no Spring boundary annotation) exempt when it has a unit *Test",
@@ -95,8 +101,11 @@ def default_java_rules() -> list[JavaRule]:
         DisallowedCommentRule(),
         GenericTypeNosonarRule(),
         TypeHeaderOneLineRule(),
+        EmptyCollectionStaticFactoryRule(),
         TestWhenGenericVariableRule(),
+        TestGwtSectionsRule(),
         TestMethodPrefixRule(),
+        TestOwnerConstructionRule(),
         DuplicateTestMethodRule(),
         SpringConfigurationProxyBeanMethodsRule(),
     ]

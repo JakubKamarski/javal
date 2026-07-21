@@ -3,10 +3,10 @@ from __future__ import annotations
 from validator.java.context import JavaFileContext
 
 
-def parse_gwt_section_line_ranges(context: JavaFileContext, method_node) -> dict[str, tuple[int, int]]:
+def gwt_section_markers(context: JavaFileContext, method_node) -> list[tuple[str, int]]:
     block = next((child for child in method_node.children if child.type == "block"), None)
     if block is None:
-        return {}
+        return []
 
     markers: list[tuple[str, int]] = []
     for node in block.children:
@@ -15,6 +15,11 @@ def parse_gwt_section_line_ranges(context: JavaFileContext, method_node) -> dict
         label = context.text(node).strip().removeprefix("//").strip().upper()
         if label in {"GIVEN", "WHEN", "THEN"}:
             markers.append((label, node.start_point[0] + 1))
+    return markers
+
+
+def parse_gwt_section_line_ranges(context: JavaFileContext, method_node) -> dict[str, tuple[int, int]]:
+    markers = gwt_section_markers(context, method_node)
 
     if not markers:
         return {}

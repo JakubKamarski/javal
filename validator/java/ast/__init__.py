@@ -12,7 +12,7 @@ from validator.java.ast.comments import (
     is_suppression_comment,
     iter_comments,
 )
-from validator.java.ast.gwt import line_in_range, parse_gwt_section_line_ranges
+from validator.java.ast.gwt import gwt_section_markers, line_in_range, parse_gwt_section_line_ranges
 from validator.java.ast.imports import collect_identifier_usages, iter_import_declarations
 from validator.java.ast.methods import iter_method_declarations
 from validator.java.ast.entities import (
@@ -91,6 +91,7 @@ __all__ = [
     "iter_multiline_type_declaration_headers",
     "iter_type_parameter_names",
     "has_task_changed_query_method",
+    "gwt_section_markers",
     "iter_query_method_declarations",
     "is_abstract_top_level_type",
     "is_optional_type",
