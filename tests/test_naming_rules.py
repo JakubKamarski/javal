@@ -222,6 +222,31 @@ class ActionVerbSample {
     assert verb_prefix == []
 
 
+def test_publish_and_mark_prefixes_are_allowed_without_noun_continuations(analyzer):
+    source = """
+class StatusPublisher {
+    void publish() {}
+    void publishPending() {}
+    void publishPage() {}
+    void publishPendingStatuses() {}
+    void markPublished() {}
+    void publisher() {}
+    void marker() {}
+}
+"""
+
+    findings = analyzer.analyze_source("StatusPublisher.java", source)
+    verb_prefix = [finding.summary for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+
+    assert not any(
+        method_name in summary
+        for method_name in ("publish'", "publishPending", "publishPage", "publishPendingStatuses", "markPublished")
+        for summary in verb_prefix
+    )
+    assert any("publisher" in summary for summary in verb_prefix)
+    assert any("marker" in summary for summary in verb_prefix)
+
+
 def test_ship_prefix_is_allowed_without_allowing_shipment_nouns(analyzer):
     source = "class Shipper { void ship() {} void shipShipment() {} void shipment() {} }"
 
