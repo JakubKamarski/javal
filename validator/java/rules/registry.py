@@ -10,6 +10,7 @@ from validator.java.rules.naming.local_variable_optional_prefix import LocalVari
 from validator.java.rules.naming.method_verb_prefix import MethodVerbPrefixRule
 from validator.java.rules.naming.variable_collection_type import VariableCollectionTypeInNameRule
 from validator.java.rules.naming.variable_hungarian_notation import VariableHungarianNotationRule
+from validator.java.rules.style.apache_commons_validate import ApacheCommonsValidateRule
 from validator.java.rules.style.disallowed_comment import DisallowedCommentRule
 from validator.java.rules.style.empty_collection_static_factory import EmptyCollectionStaticFactoryRule
 from validator.java.rules.style.generic_type_nosonar import GenericTypeNosonarRule
@@ -46,6 +47,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-sonar-generic-type-nosonar": "Non-standard generic type parameter names require NOSONAR on the type header or method signature",
     "java-style-type-header-one-line": "Type declaration headers that fit within 120 columns must remain on one line",
     "java-style-empty-collection-static-factory": "Empty List.of(), Map.of(), and Set.of() must use Collections.empty*()",
+    "java-style-apache-commons-validate": "Direct if guards that only throw IllegalArgumentException must use Apache Commons Lang Validate",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
     "java-testing-gwt-sections": "Test methods must contain one // GIVEN, // WHEN, and // THEN section in order",
     "java-testing-test-method-prefix": "Test method name must start with the method invoked in // WHEN",
@@ -102,6 +104,7 @@ def default_java_rules() -> list[JavaRule]:
         GenericTypeNosonarRule(),
         TypeHeaderOneLineRule(),
         EmptyCollectionStaticFactoryRule(),
+        ApacheCommonsValidateRule(),
         TestWhenGenericVariableRule(),
         TestGwtSectionsRule(),
         TestMethodPrefixRule(),

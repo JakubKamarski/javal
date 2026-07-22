@@ -199,6 +199,9 @@ initialized fields, argument transformations, validation, and any additional sta
   `Template` is the tested invocation; ambiguous callbacks are ignored.
 - Empty `List.of()`, `Map.of()`, and `Set.of()` calls use the corresponding
   `Collections.empty*()` factory instead.
+- A direct, single-branch `if` guard that only throws `IllegalArgumentException`
+  uses Apache Commons Lang `Validate`: `Validate.notNull` for null rejection and
+  `Validate.isTrue` for other valid-condition checks.
 
 ## Liquibase analysis
 
