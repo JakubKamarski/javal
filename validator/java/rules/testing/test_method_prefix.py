@@ -32,6 +32,8 @@ class TestMethodPrefixRule(JavaRule):
             if action is None:
                 continue
             method_under_test = action.method_name
+            if action.is_constructor:
+                method_under_test = method_under_test[:1].lower() + method_under_test[1:]
 
             if method.name.startswith(method_under_test):
                 continue

@@ -34,8 +34,6 @@ class DuplicateTestMethodRule(JavaRule):
             action = action_from_when(context, method.node, when_range)
             if action is None:
                 continue
-            if action.path == "exception":
-                continue
             if action.receiver_type is None or len(action.argument_types) != action.argument_count:
                 continue
 
@@ -50,6 +48,8 @@ class DuplicateTestMethodRule(JavaRule):
                     test_class.start_byte,
                     action.receiver_type,
                     action.method_name,
+                    action.path,
+                    action.is_constructor,
                     action.argument_types,
                     _then_fingerprint(context, method.node, then_range),
                 )
@@ -60,6 +60,8 @@ class DuplicateTestMethodRule(JavaRule):
             _class_start,
             receiver_type,
             method_name,
+            path,
+            is_constructor,
             argument_types,
             _then_shape,
         ), methods in grouped_methods.items():
@@ -67,17 +69,16 @@ class DuplicateTestMethodRule(JavaRule):
                 continue
             violations.append(
                 RuleViolation(
-                    summary=(
-                        f"{len(methods)} test methods in the same class invoke "
-                        f"'{receiver_type}.{method_name}({', '.join(argument_types)})' on "
-                        "the normal-response path with equivalent assertions. Merge them into "
-                        "one parameterized test."
+                    summary=_summary(
+                        len(methods),
+                        receiver_type,
+                        method_name,
+                        argument_types,
+                        path,
+                        is_constructor,
                     ),
                     line=methods[-1].line,
-                    suggestion=(
-                        "Merge only equivalent normal-response cases into one @ParameterizedTest; "
-                        "keep exception-path cases separate (per agents/rule-testing.md)."
-                    ),
+                    suggestion=_suggestion(path),
                 )
             )
         return violations
@@ -104,6 +105,40 @@ def _then_fingerprint(context: JavaFileContext, method_node, then_range: tuple[i
                     "",
                 )
                 tokens.append(f"call:{name}")
+            elif node.type == "type_identifier":
+                tokens.append(f"type:{context.text(node)}")
             elif node.is_named and node.type not in {"identifier", "string_literal", "decimal_integer_literal", "decimal_floating_point_literal"}:
                 tokens.append(node.type)
     return tuple(tokens)
+
+
+def _summary(
+    count: int,
+    receiver_type: str,
+    method_name: str,
+    argument_types: tuple[str, ...],
+    path: str,
+    is_constructor: bool,
+) -> str:
+    target = (
+        f"new {receiver_type}({', '.join(argument_types)})"
+        if is_constructor
+        else f"{receiver_type}.{method_name}({', '.join(argument_types)})"
+    )
+    response_path = "exception" if path == "exception" else "normal-response"
+    return (
+        f"{count} test methods in the same class invoke '{target}' on the {response_path} "
+        "path with equivalent assertions. Merge them into one parameterized test."
+    )
+
+
+def _suggestion(path: str) -> str:
+    if path == "exception":
+        return (
+            "Merge equivalent exception cases into one @ParameterizedTest; capture "
+            "Throwable exception with catchThrowable in // WHEN."
+        )
+    return (
+        "Merge only equivalent normal-response cases into one @ParameterizedTest; "
+        "keep exception-path cases separate (per agents/rule-testing.md)."
+    )

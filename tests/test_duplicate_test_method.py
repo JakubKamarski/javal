@@ -80,7 +80,7 @@ def test_keeps_exception_and_normal_response_tests_separate():
     assert _findings(source) == []
 
 
-def test_keeps_multiple_exception_tests_separate():
+def test_flags_multiple_equivalent_exception_tests():
     source = _test_class(
         _test_method(
             "find_GivenMissingCode_WhenCalled_ThenThrows",
@@ -95,7 +95,47 @@ def test_keeps_multiple_exception_tests_separate():
 
     findings = _findings(source)
 
-    assert findings == []
+    assert len(findings) == 1
+    assert "exception path" in findings[0].summary
+
+
+def test_flags_equivalent_exception_constructor_tests():
+    source = _test_class(
+        _test_method(
+            "sampleEndpointGivenBlankUrl_WhenCreated_ThenThrows",
+            'Throwable exception = catchThrowable(() -> new SampleEndpoint("", "user"));',
+            "assertThat(exception).isInstanceOf(IllegalArgumentException.class);",
+        ),
+        _test_method(
+            "sampleEndpointGivenBlankUser_WhenCreated_ThenThrows",
+            'Throwable exception = catchThrowable(() -> new SampleEndpoint("url", ""));',
+            "assertThat(exception).isInstanceOf(IllegalArgumentException.class);",
+        ),
+    )
+
+    findings = _findings(source)
+
+    assert len(findings) == 1
+    assert "new SampleEndpoint(String, String)" in findings[0].summary
+    assert "exception path" in findings[0].summary
+    assert "catchThrowable" in findings[0].suggestion
+
+
+def test_keeps_exception_tests_with_distinct_exception_types_separate():
+    source = _test_class(
+        _test_method(
+            "findGivenInvalidCode_WhenCalled_ThenThrows",
+            'Throwable exception = catchThrowable(() -> service.find(""));',
+            "assertThat(exception).isInstanceOf(IllegalArgumentException.class);",
+        ),
+        _test_method(
+            "findGivenMissingCode_WhenCalled_ThenThrows",
+            'Throwable exception = catchThrowable(() -> service.find("missing"));',
+            "assertThat(exception).isInstanceOf(IllegalStateException.class);",
+        ),
+    )
+
+    assert _findings(source) == []
 
 
 def test_keeps_nested_test_classes_separate():
@@ -174,6 +214,18 @@ def test_ignores_same_method_name_with_distinct_argument_types():
     )
 
     assert _findings(source) == []
+
+
+def test_flags_method_calls_with_constructed_arguments():
+    source = _test_class(
+        _test_method("saveGivenFirstRecord_WhenCalled_ThenReturns", 'service.save(new SampleRecord("A"));'),
+        _test_method("saveGivenSecondRecord_WhenCalled_ThenReturns", 'service.save(new SampleRecord("B"));'),
+    )
+
+    findings = _findings(source)
+
+    assert len(findings) == 1
+    assert "Service.save(SampleRecord)" in findings[0].summary
 
 
 def test_ignores_same_signature_with_distinct_assertion_shapes():

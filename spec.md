@@ -191,6 +191,11 @@ initialized fields, argument transformations, validation, and any additional sta
 - Every `@Test` and `@ParameterizedTest` must contain exactly one ordered
   `// GIVEN`, `// WHEN`, and `// THEN` section.
 - A test name starts with the method invoked in `// WHEN`.
+- Equivalent normal-response and exception-path tests with the same resolvable
+  invocation signature form one parameterized test; normal and exception outcomes
+  stay separate.
+- Exception tests capture `Throwable exception` with `catchThrowable` in `// WHEN`
+  and assert it in `// THEN`.
 - The receiver of that invocation is initialized in `// GIVEN`, is a directly
   initialized `final` field in the test class, or is an annotated non-static
   field in an integration test (`*IT` type or `*IT` slice annotation). The

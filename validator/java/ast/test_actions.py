@@ -66,6 +66,7 @@ class TestAction:
     argument_count: int
     path: Literal["normal", "exception"]
     line: int
+    is_constructor: bool = False
     receiver_name: str | None = None
     inline_receiver_method_name: str | None = None
     receiver_type: str | None = None
@@ -116,6 +117,11 @@ def _statement_actions(context: JavaFileContext, statement_node, method_node) ->
             actions.extend(template_actions)
             continue
         actions.append(_test_action(context, invocation, method_name, "normal", method_node))
+    creations = [node for node in descendants(statement_node) if node.type == "object_creation_expression"]
+    actions.extend(
+        _constructor_action(context, creation, "normal", method_node)
+        for creation in _outermost_creations(creations, invocations)
+    )
     return actions
 
 
@@ -151,13 +157,17 @@ def _exception_actions(context: JavaFileContext, exception_wrapper, method_node)
     for lambda_expression in descendants(exception_wrapper):
         if lambda_expression.type != "lambda_expression":
             continue
-        for invocation in _outermost_invocations(
-            [node for node in descendants(lambda_expression) if node.type == "method_invocation"]
-        ):
+        invocations = [node for node in descendants(lambda_expression) if node.type == "method_invocation"]
+        for invocation in _outermost_invocations(invocations):
             method_name = _invocation_method_name(context, invocation)
             if method_name is None or method_name in EXCLUDED_INVOCATION_METHODS:
                 continue
             actions.append(_test_action(context, invocation, method_name, "exception", method_node))
+        creations = [node for node in descendants(lambda_expression) if node.type == "object_creation_expression"]
+        actions.extend(
+            _constructor_action(context, creation, "exception", method_node)
+            for creation in _outermost_creations(creations, invocations)
+        )
     return actions
 
 
@@ -199,6 +209,25 @@ def _test_action(
         receiver_name=_receiver_name(context, invocation),
         inline_receiver_method_name=_inline_receiver_method_name(context, invocation),
         receiver_type=receiver_type,
+        argument_types=argument_types or (),
+    )
+
+
+def _constructor_action(
+    context: JavaFileContext,
+    creation,
+    path: Literal["normal", "exception"],
+    method_node,
+) -> TestAction:
+    created_type = _expression_type(context, creation, _variable_types(context, method_node))
+    argument_types = _argument_types(context, creation, method_node)
+    return TestAction(
+        method_name=created_type or "new",
+        argument_count=_argument_count(creation),
+        path=path,
+        line=creation.start_point[0] + 1,
+        is_constructor=True,
+        receiver_type=created_type,
         argument_types=argument_types or (),
     )
 
@@ -311,6 +340,19 @@ def _outermost_invocations(invocations: list) -> list:
             _is_nested_invocation(other, invocation)
             for other in invocations
             if other is not invocation
+        )
+    ]
+
+
+def _outermost_creations(creations: list, invocations: list) -> list:
+    return [
+        creation
+        for creation in creations
+        if not any(_is_nested_invocation(invocation, creation) for invocation in invocations)
+        if not any(
+            _is_nested_invocation(other, creation)
+            for other in creations
+            if other is not creation
         )
     ]
 
