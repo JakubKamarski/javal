@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import replace
 
 from validator.java.ast import iter_method_declarations, parse_gwt_section_line_ranges
 from validator.java.ast.gwt import line_in_range
 from validator.java.ast.variables import descendants
 from validator.java.ast.modifiers import enclosing_class_declaration
-from validator.java.ast.test_actions import TestAction, action_from_when
+from validator.java.ast.test_actions import (
+    EXCEPTION_ASSERTION_METHODS,
+    TestAction,
+    _invocation_method_name,
+    action_from_when,
+)
 from validator.java.context import JavaFileContext
 from validator.java.rules.base import JavaRule, RuleViolation
 
@@ -43,6 +49,8 @@ class DuplicateTestMethodRule(JavaRule):
             then_range = parse_gwt_section_line_ranges(context, method.node).get("THEN")
             if then_range is None:
                 continue
+            if _has_exception_assertion(context, method.node, then_range):
+                action = replace(action, path="exception")
             grouped_methods[
                 (
                     test_class.start_byte,
@@ -110,6 +118,15 @@ def _then_fingerprint(context: JavaFileContext, method_node, then_range: tuple[i
             elif node.is_named and node.type not in {"identifier", "string_literal", "decimal_integer_literal", "decimal_floating_point_literal"}:
                 tokens.append(node.type)
     return tuple(tokens)
+
+
+def _has_exception_assertion(context: JavaFileContext, method_node, then_range: tuple[int, int]) -> bool:
+    return any(
+        line_in_range(invocation.start_point[0] + 1, then_range)
+        and _invocation_method_name(context, invocation) in EXCEPTION_ASSERTION_METHODS
+        for invocation in descendants(method_node)
+        if invocation.type == "method_invocation"
+    )
 
 
 def _summary(

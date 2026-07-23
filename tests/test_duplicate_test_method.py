@@ -121,6 +121,26 @@ def test_flags_equivalent_exception_constructor_tests():
     assert "catchThrowable" in findings[0].suggestion
 
 
+def test_flags_deferred_exception_constructors_as_exception_path():
+    source = _test_class(
+        _test_method(
+            "sampleEndpointGivenBlankUrl_WhenCreated_ThenThrows",
+            'ThrowingCallable creation = () -> new SampleEndpoint("", "user");',
+            "assertThatThrownBy(creation).isInstanceOf(IllegalArgumentException.class);",
+        ),
+        _test_method(
+            "sampleEndpointGivenBlankUser_WhenCreated_ThenThrows",
+            'ThrowingCallable creation = () -> new SampleEndpoint("url", "");',
+            "assertThatThrownBy(creation).isInstanceOf(IllegalArgumentException.class);",
+        ),
+    )
+
+    findings = _findings(source)
+
+    assert len(findings) == 1
+    assert "exception path" in findings[0].summary
+
+
 def test_keeps_exception_tests_with_distinct_exception_types_separate():
     source = _test_class(
         _test_method(
