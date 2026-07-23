@@ -207,6 +207,52 @@ def test_reports_the_later_test_when_it_is_in_task_scope(tmp_path):
     assert findings[0].line > 1
 
 
+def test_reports_exception_constructor_duplicates_when_latest_test_is_in_task_scope(tmp_path):
+    task_id = "ABC-1234"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+
+    test_path = tmp_path / "src" / "test" / "java" / "demo" / "SampleEndpointTest.java"
+    test_path.parent.mkdir(parents=True)
+    test_path.write_text(
+        _test_class(
+            _test_method(
+                "sampleEndpointGivenBlankUrl_WhenCreated_ThenThrows",
+                'Throwable exception = catchThrowable(() -> new SampleEndpoint("", "user"));',
+                "assertThat(exception).isInstanceOf(IllegalArgumentException.class);",
+            )
+        ),
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial test")
+
+    test_path.write_text(
+        _test_class(
+            _test_method(
+                "sampleEndpointGivenBlankUrl_WhenCreated_ThenThrows",
+                'Throwable exception = catchThrowable(() -> new SampleEndpoint("", "user"));',
+                "assertThat(exception).isInstanceOf(IllegalArgumentException.class);",
+            ),
+            _test_method(
+                "sampleEndpointGivenBlankUser_WhenCreated_ThenThrows",
+                'Throwable exception = catchThrowable(() -> new SampleEndpoint("url", ""));',
+                "assertThat(exception).isInstanceOf(IllegalArgumentException.class);",
+            ),
+        ),
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id} | Add duplicate exception case")
+
+    report = analyze_java_tree(tmp_path, task_id=task_id)
+    findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
+
+    assert len(findings) == 1
+    assert findings[0].line > 1
+
+
 def test_ignores_same_method_name_with_distinct_argument_types():
     source = _test_class(
         _test_method("find_GivenCode_WhenCalled_ThenReturnsValue", 'service.find("A");'),
