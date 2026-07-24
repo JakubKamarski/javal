@@ -72,6 +72,30 @@ RULE_MODULE_EXCLUDES = frozenset(
     }
 )
 
+NON_JAVA_RULES = (
+    RuleMeta(
+        check_id="liquibase-changeset-author",
+        category="liquibase",
+        description="Liquibase changesets must use the task author and valid task-scoped IDs",
+        scope="tree",
+        tree_scope="task_changed",
+    ),
+    RuleMeta(
+        check_id="git-uncommitted-changes",
+        category="git",
+        description="Repository must not contain uncommitted changes",
+        scope="tree",
+        tree_scope="global",
+    ),
+    RuleMeta(
+        check_id="git-commit-no-courier-symbol",
+        category="git",
+        description="Task commits in courier repositories must include a valid courier symbol",
+        scope="tree",
+        tree_scope="task_changed",
+    ),
+)
+
 
 def enrich_meta(rule: JavaRule | TreeJavaRule) -> RuleMeta:
     base = rule.meta
@@ -131,6 +155,14 @@ def all_registered_rules() -> list[JavaRule | TreeJavaRule]:
 
 def list_registered_rule_meta() -> list[RuleMeta]:
     return [enrich_meta(rule) for rule in all_registered_rules()]
+
+
+def list_all_rule_meta() -> list[RuleMeta]:
+    return [*list_registered_rule_meta(), *NON_JAVA_RULES]
+
+
+def registered_check_ids() -> frozenset[str]:
+    return frozenset(meta.check_id for meta in list_all_rule_meta())
 
 
 def discover_rule_module_paths(rules_root: Path | None = None) -> list[Path]:

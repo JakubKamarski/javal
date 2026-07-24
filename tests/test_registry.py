@@ -13,6 +13,7 @@ from validator.java.rules.registry import (
     RULE_DESCRIPTIONS,
     all_registered_rules,
     discover_rule_module_paths,
+    list_all_rule_meta,
     list_registered_rule_meta,
 )
 from validator.report import Finding, Report
@@ -65,6 +66,18 @@ def test_registered_rules_have_descriptions():
     for meta in list_registered_rule_meta():
         assert meta.check_id in RULE_DESCRIPTIONS
         assert meta.description
+
+
+def test_all_rule_inventory_includes_non_java_analyzers_without_duplicates():
+    metadata = list_all_rule_meta()
+    check_ids = [meta.check_id for meta in metadata]
+
+    assert len(check_ids) == len(set(check_ids))
+    assert check_ids[-3:] == [
+        "liquibase-changeset-author",
+        "git-uncommitted-changes",
+        "git-commit-no-courier-symbol",
+    ]
 
 
 def test_tree_rules_declare_scope_policy():

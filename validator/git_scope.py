@@ -6,7 +6,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-TASK_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
+TRACKER_TASK_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
+MAINTENANCE_TASK_ID_PATTERN = re.compile(
+    r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-update$"
+)
 HUNK_HEADER_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 BLAME_HEADER_PATTERN = re.compile(r"^([0-9a-f]{40}) \d+ (\d+)(?: \d+)?$")
 SCOPED_FILE_SUFFIXES = frozenset({".java", ".xml"})
@@ -30,9 +33,41 @@ class TaskScope:
 
 def validate_task_id(task_id: str) -> str:
     normalized = task_id.strip()
-    if not TASK_ID_PATTERN.fullmatch(normalized):
-        raise ValueError(f"Invalid task id '{task_id}'. Expected format like ABC-1234.")
+    if not (
+        TRACKER_TASK_ID_PATTERN.fullmatch(normalized)
+        or MAINTENANCE_TASK_ID_PATTERN.fullmatch(normalized)
+    ):
+        raise ValueError(
+            f"Invalid task id '{task_id}'. "
+            "Expected format like ABC-1234 or sample-tool-update."
+        )
     return normalized
+
+
+def validate_iteration(task_id: str, iteration: int | None) -> int | None:
+    is_maintenance = MAINTENANCE_TASK_ID_PATTERN.fullmatch(task_id) is not None
+    if is_maintenance:
+        if iteration is None:
+            raise ValueError(
+                f"Maintenance task {task_id} requires a positive --iteration."
+            )
+        if iteration <= 0:
+            raise ValueError(f"Iteration must be positive: {iteration}")
+        return iteration
+    if iteration is not None:
+        raise ValueError(
+            f"--iteration is only valid for maintenance task ids ending in -update: "
+            f"{task_id}"
+        )
+    return None
+
+
+def task_scope_token(task_id: str, iteration: int | None = None) -> str:
+    normalized = validate_task_id(task_id)
+    normalized_iteration = validate_iteration(normalized, iteration)
+    if normalized_iteration is None:
+        return normalized
+    return f"{normalized}#{normalized_iteration}"
 
 
 def resolve_repo_path(repo_path: Path | None) -> Path:
@@ -69,14 +104,25 @@ def ensure_git_repo(repo: Path) -> None:
         raise ValueError(f"Not a git repository: {repo}")
 
 
-def commit_subject_matches_task_id(subject: str, task_id: str) -> bool:
+def commit_subject_matches_task_id(
+    subject: str,
+    task_id: str,
+    iteration: int | None = None,
+) -> bool:
+    token = task_scope_token(task_id, iteration)
+    if iteration is not None:
+        return subject == token or subject.startswith(f"{token} | ")
     return re.search(
-        rf"(?<![A-Za-z0-9]){re.escape(task_id)}(?!\d)",
+        rf"(?<![A-Za-z0-9]){re.escape(token)}(?!\d)",
         subject,
     ) is not None
 
 
-def list_task_commits(repo: Path, task_id: str) -> list[str]:
+def list_task_commits(
+    repo: Path,
+    task_id: str,
+    iteration: int | None = None,
+) -> list[str]:
     result = subprocess.run(
         [
             "git",
@@ -92,7 +138,7 @@ def list_task_commits(repo: Path, task_id: str) -> list[str]:
     commits = []
     for line in result.stdout.splitlines():
         commit, separator, subject = line.partition("\0")
-        if separator and commit_subject_matches_task_id(subject, task_id):
+        if separator and commit_subject_matches_task_id(subject, task_id, iteration):
             commits.append(commit)
     return list(reversed(commits))
 
@@ -187,8 +233,12 @@ def is_scoped_source_path(relative_path: str) -> bool:
     return Path(relative_path).suffix.lower() in SCOPED_FILE_SUFFIXES
 
 
-def collect_task_changed_lines(repo: Path, task_id: str) -> TaskScope:
-    commits = list_task_commits(repo, task_id)
+def collect_task_changed_lines(
+    repo: Path,
+    task_id: str,
+    iteration: int | None = None,
+) -> TaskScope:
+    commits = list_task_commits(repo, task_id, iteration)
     if not commits:
         return TaskScope(
             task_id=task_id,
@@ -291,8 +341,13 @@ def get_git_user_name(repo: Path) -> str:
     return result.stdout.strip()
 
 
-def build_task_scope(repo: Path, task_id: str) -> TaskScope:
-    validate_task_id(task_id)
+def build_task_scope(
+    repo: Path,
+    task_id: str,
+    iteration: int | None = None,
+) -> TaskScope:
+    normalized = validate_task_id(task_id)
+    normalized_iteration = validate_iteration(normalized, iteration)
     repo_root = resolve_git_repo_root(repo)
     ensure_git_repo(repo_root)
-    return collect_task_changed_lines(repo_root, task_id)
+    return collect_task_changed_lines(repo_root, normalized, normalized_iteration)

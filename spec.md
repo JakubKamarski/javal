@@ -17,10 +17,17 @@ expected to be UTF-8.
 
 ### Task identification
 
-A task ID matches `^[A-Z][A-Z0-9]*-\d+$`. Reachable commits belong to the task
-when their subject contains that standalone ID: it must not be preceded by an
-alphanumeric character or followed by a digit. Conventional prefixes and separators
-such as `fix: `, ` | `, a space, or `:` are accepted.
+Tracker IDs match `^[A-Z][A-Z0-9]*-\d+$`. Reachable commits belong to a tracker
+task when their subject contains that standalone ID: it must not be preceded by
+an alphanumeric character or followed by a digit. Conventional prefixes and
+separators such as `fix: `, ` | `, a space, or `:` are accepted.
+
+Recurring repository-maintenance IDs match
+`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-update$`. They require a positive
+`--iteration N`; tracker IDs reject that option. A maintenance commit belongs to
+the selected scope only when its subject is exactly `<task-id>#<N>` or starts
+with `<task-id>#<N> | `. This prevents earlier iterations of the permanent task
+from leaking into the current validation scope.
 
 The CLI returns exit code `2` when no matching commit exists. Programmatic
 analyzer APIs may still receive an empty `TaskScope` for isolated tests.
@@ -37,7 +44,7 @@ analyzer APIs may still receive an empty `TaskScope` for isolated tests.
 
 Scope construction works as follows:
 
-1. Select matching commits with `git log --grep`.
+1. Read reachable commit subjects and select exact task matches.
 2. Collect their changed paths with `git diff-tree`.
 3. Run `git blame --line-porcelain HEAD` for current versions of those paths.
 4. Retain lines attributed to a matching task commit.
@@ -149,7 +156,7 @@ Applicability is enforced by the orchestrator before a rule runs:
 
 Rules are registered explicitly in `validator/java/rules/registry.py`. Explicit
 registration keeps order and descriptions deterministic. `javal list-rules` is
-the authoritative inventory.
+the authoritative inventory across Java, Liquibase, and Git analyzers.
 
 ### Type declaration headers
 
@@ -236,6 +243,25 @@ Output formats:
 
 Paths may be absolute, repository-relative, or filename-only. Progress is sent
 to stderr and findings to stdout.
+
+### Accounted validator exceptions
+
+`javal todo --check <check-id> --file <path> --line <n> --description <text>`
+records the human-readable entry in ignored `todo.md` and an internal JSONL
+fingerprint in ignored `todo.jsonl`. The check ID must exist in the authoritative
+rule inventory, and the referenced positive line must exist.
+
+Before rendering, Javal removes an invalid finding only when a JSONL record
+matches all of:
+
+- check ID;
+- resolved absolute file path;
+- positive line number;
+- SHA-256 hash of the current source-line text.
+
+Stale, malformed, partial, or legacy Markdown-only entries do not clear the
+gate. This filtering does not change the `log`, `task`, or `markdown` rendering
+contracts above.
 
 ## Extension and testing
 

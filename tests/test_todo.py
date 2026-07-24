@@ -1,13 +1,29 @@
-import pytest
+import json
 from pathlib import Path
 
+import pytest
+
 from validate import main, parse_args, parse_todo_args
-from validator.todo import append_todo, default_todo_path, format_todo_line
+from validator.report import Finding
+from validator.todo import (
+    append_todo,
+    default_todo_path,
+    default_todo_registry_path,
+    format_todo_line,
+    load_todo_fingerprints,
+    partition_accounted_findings,
+)
 
 
 def test_default_todo_path_points_to_repo_root():
     path = default_todo_path()
     assert path.name == "todo.md"
+    assert (path.parent / "validate.py").is_file()
+
+
+def test_default_todo_registry_path_points_to_repo_root():
+    path = default_todo_registry_path()
+    assert path.name == "todo.jsonl"
     assert (path.parent / "validate.py").is_file()
 
 
@@ -65,6 +81,125 @@ def test_append_todo_rejects_empty_description(tmp_path):
         append_todo(java_file, 1, "   ", todo_path=tmp_path / "todo.md")
 
 
+def test_append_todo_with_check_writes_exact_fingerprint(tmp_path):
+    todo_path = tmp_path / "todo.md"
+    registry_path = tmp_path / "todo.jsonl"
+    java_file = tmp_path / "Foo.java"
+    java_file.write_text("class Foo {}\n", encoding="utf-8")
+
+    append_todo(
+        java_file,
+        1,
+        "Confirmed validator defect",
+        check="unused-imports",
+        todo_path=todo_path,
+        registry_path=registry_path,
+    )
+
+    record = json.loads(registry_path.read_text(encoding="utf-8"))
+    assert record["check"] == "unused-imports"
+    assert record["file"] == str(java_file.resolve())
+    assert record["line"] == 1
+    assert len(record["source_line_hash"]) == 64
+
+
+def test_append_todo_rejects_unknown_check_without_writing(tmp_path):
+    todo_path = tmp_path / "todo.md"
+    registry_path = tmp_path / "todo.jsonl"
+    java_file = tmp_path / "Foo.java"
+    java_file.write_text("class Foo {}\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Unknown check id"):
+        append_todo(
+            java_file,
+            1,
+            "Unknown rule",
+            check="not-a-rule",
+            todo_path=todo_path,
+            registry_path=registry_path,
+        )
+
+    assert not todo_path.exists()
+    assert not registry_path.exists()
+
+
+def test_partition_accounted_findings_requires_exact_unchanged_fingerprint(tmp_path):
+    registry_path = tmp_path / "todo.jsonl"
+    java_file = tmp_path / "Foo.java"
+    java_file.write_text("import java.util.Set;\nclass Foo {}\n", encoding="utf-8")
+    append_todo(
+        java_file,
+        1,
+        "False positive",
+        check="unused-imports",
+        todo_path=tmp_path / "todo.md",
+        registry_path=registry_path,
+    )
+    finding = Finding(
+        severity="warning",
+        check="unused-imports",
+        summary="Unused import",
+        file=str(java_file),
+        line=1,
+    )
+
+    unaccounted, accounted = partition_accounted_findings(
+        [finding],
+        registry_path=registry_path,
+    )
+    assert unaccounted == []
+    assert accounted == [finding]
+
+    java_file.write_text("import java.util.List;\nclass Foo {}\n", encoding="utf-8")
+    unaccounted, accounted = partition_accounted_findings(
+        [finding],
+        registry_path=registry_path,
+    )
+    assert unaccounted == [finding]
+    assert accounted == []
+
+
+def test_partition_accounted_findings_requires_exact_check_id(tmp_path):
+    registry_path = tmp_path / "todo.jsonl"
+    java_file = tmp_path / "Foo.java"
+    java_file.write_text("class Foo {}\n", encoding="utf-8")
+    append_todo(
+        java_file,
+        1,
+        "False positive",
+        check="unused-imports",
+        todo_path=tmp_path / "todo.md",
+        registry_path=registry_path,
+    )
+    finding = Finding(
+        severity="warning",
+        check="java-clean-code-comment",
+        summary="Comment",
+        file=str(java_file),
+        line=1,
+    )
+
+    unaccounted, accounted = partition_accounted_findings(
+        [finding],
+        registry_path=registry_path,
+    )
+
+    assert unaccounted == [finding]
+    assert accounted == []
+
+
+def test_load_todo_fingerprints_ignores_malformed_records(tmp_path):
+    registry_path = tmp_path / "todo.jsonl"
+    registry_path.write_text(
+        "not json\n"
+        '{"check":"unused-imports"}\n'
+        '{"check":[],"file":1,"line":"x","source_line_hash":{}}\n',
+        encoding="utf-8",
+    )
+
+    assert load_todo_fingerprints(registry_path) == frozenset()
+
+
 def test_parse_args_routes_to_todo_subcommand():
     args = parse_args(
         [
@@ -82,6 +217,7 @@ def test_parse_args_routes_to_todo_subcommand():
     assert args.file == Path("/tmp/Foo.java")
     assert args.line == 42
     assert args.description == "False positive"
+    assert args.check is None
 
 
 def test_parse_args_routes_to_validate_by_default():
@@ -128,6 +264,7 @@ def test_todo_help_contains_ai_guidance(capsys):
     assert "--file" in captured.out
     assert "--line" in captured.out
     assert "--description" in captured.out
+    assert "--check" in captured.out
 
 
 def test_validate_help_mentions_todo_subcommand(capsys):

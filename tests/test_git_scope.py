@@ -11,10 +11,12 @@ from validator.git_scope import (
     list_task_commits,
     parse_unified_diff,
     resolve_repo_path,
+    task_scope_token,
     validate_task_id,
+    validate_iteration,
 )
 from validator.java.analyzer import analyze_java_tree
-from validate import main
+from validate import main, parse_args
 
 
 SAMPLE_DIFF = """\
@@ -38,9 +40,35 @@ def test_validate_task_id_accepts_standard_format():
     assert validate_task_id("ABC-5164") == "ABC-5164"
 
 
+def test_validate_task_id_accepts_recurring_maintenance_format():
+    assert validate_task_id("sample-tool-update") == "sample-tool-update"
+
+
 def test_validate_task_id_rejects_invalid_format():
     with pytest.raises(ValueError):
         validate_task_id("plog-5164")
+
+
+@pytest.mark.parametrize("task_id", ["Sample-tool-update", "sample--tool-update", "sample-tool"])
+def test_validate_task_id_rejects_invalid_maintenance_format(task_id):
+    with pytest.raises(ValueError):
+        validate_task_id(task_id)
+
+
+def test_maintenance_task_requires_positive_iteration():
+    with pytest.raises(ValueError, match="requires a positive --iteration"):
+        validate_iteration("sample-tool-update", None)
+    with pytest.raises(ValueError, match="Iteration must be positive"):
+        validate_iteration("sample-tool-update", 0)
+
+
+def test_tracker_task_rejects_iteration():
+    with pytest.raises(ValueError, match="only valid for maintenance"):
+        validate_iteration("ABC-5164", 1)
+
+
+def test_task_scope_token_includes_maintenance_iteration():
+    assert task_scope_token("sample-tool-update", 3) == "sample-tool-update#3"
 
 
 @pytest.mark.parametrize(
@@ -61,6 +89,28 @@ def test_validate_task_id_rejects_invalid_format():
 )
 def test_commit_subject_matches_task_id(subject, task_id, expected):
     assert commit_subject_matches_task_id(subject, task_id) is expected
+
+
+@pytest.mark.parametrize(
+    ("subject", "iteration", "expected"),
+    [
+        ("sample-tool-update#2 | Improve checks", 2, True),
+        ("sample-tool-update#2", 2, True),
+        ("sample-tool-update#1 | Earlier iteration", 2, False),
+        ("fix: sample-tool-update#2 | Improve checks", 2, False),
+        ("sample-tool-update#20 | Later iteration", 2, False),
+    ],
+)
+def test_commit_subject_matches_exact_maintenance_iteration(
+    subject,
+    iteration,
+    expected,
+):
+    assert commit_subject_matches_task_id(
+        subject,
+        "sample-tool-update",
+        iteration,
+    ) is expected
 
 
 def test_list_task_commits_accepts_task_id_without_pipe_separator(tmp_path):
@@ -103,6 +153,28 @@ def test_list_task_commits_accepts_task_id_after_conventional_commit_prefix(tmp_
     assert len(commits) == 1
 
 
+def test_list_task_commits_selects_only_requested_maintenance_iteration(tmp_path):
+    task_id = "sample-tool-update"
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    source = tmp_path / "file.txt"
+    source.write_text("initial\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "Initial commit")
+    source.write_text("initial\none\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id}#1 | First iteration")
+    source.write_text("initial\none\ntwo\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", f"{task_id}#2 | Second iteration")
+
+    commits = list_task_commits(tmp_path, task_id, 2)
+
+    assert len(commits) == 1
+    assert commits[0] == _git_output(tmp_path, "rev-parse", "HEAD")
+
+
 def test_resolve_repo_path_defaults_to_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert resolve_repo_path(None) == tmp_path.resolve()
@@ -122,6 +194,16 @@ def test_parse_unified_diff_collects_new_file_lines():
 
 def _git(repo: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True)
+
+
+def _git_output(repo: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
 
 
 def _init_repo_with_task_commit(repo: Path, task_id: str) -> None:
@@ -230,6 +312,22 @@ def test_cli_fails_when_task_has_no_matching_commits(tmp_path, capsys):
 
     assert exit_code == 2
     assert "No commits found for task ABC-9999" in capsys.readouterr().err
+
+
+def test_cli_requires_iteration_for_maintenance_task(tmp_path, capsys):
+    _git(tmp_path, "init")
+
+    exit_code = main(["sample-tool-update", str(tmp_path)])
+
+    assert exit_code == 2
+    assert "requires a positive --iteration" in capsys.readouterr().err
+
+
+def test_parse_args_accepts_maintenance_iteration():
+    args = parse_args(["sample-tool-update", "--iteration", "4", "."])
+
+    assert args.task_id == "sample-tool-update"
+    assert args.iteration == 4
 
 
 def test_task_scope_ignores_committed_binary_files(tmp_path):

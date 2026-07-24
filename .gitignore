@@ -49,3 +49,4 @@ htmlcov/
 # Tooling
 .last-run/
 todo.md
+todo.jsonl

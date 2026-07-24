@@ -1,8 +1,8 @@
 # javal
 
 `javal` is a task-scoped static-analysis CLI for Java repositories. It validates
-current lines introduced by commits whose subject contains a standalone task ID, plus a
-small set of repository-wide and worktree checks.
+current lines introduced by a tracker task or one recurring maintenance iteration,
+plus repository-wide and worktree checks.
 
 The enforced policies come from
 [me-ai-coder](https://github.com/JakubKamarski/ai-coder). For design details and
@@ -12,7 +12,8 @@ extension contracts, see [spec.md](spec.md).
 
 - Python 3.10 or newer
 - Git
-- A Git repository whose task commits contain an ID such as `ABC-1234`
+- A Git repository whose commits use a tracker ID such as `ABC-1234` or a
+  maintenance token such as `sample-tool-update#3`
 
 ## Install
 
@@ -42,6 +43,7 @@ Uninstall with the matching script:
 
 ```bash
 javal <TASK-ID> [repo-path]
+javal <REPO-SLUG>-update --iteration <N> [repo-path]
 ```
 
 `repo-path` defaults to the current directory. A nested path is accepted and is
@@ -60,6 +62,9 @@ javal ABC-1234 --path-format relative
 # Produce a Markdown report
 javal ABC-1234 --format markdown /path/to/repository
 
+# Validate only iteration 3 of a recurring repository-maintenance task
+javal sample-tool-update --iteration 3 /path/to/repository
+
 # Inspect the live rule registry
 javal list-rules
 ```
@@ -68,6 +73,7 @@ javal list-rules
 
 | Option | Values | Default |
 |---|---|---|
+| `--iteration` | Positive integer; required only for `*-update` tasks | none |
 | `--format` | `log`, `task`, `markdown` | `log` |
 | `--path-format` | `absolute`, `relative`, `filename` | `absolute` |
 | `-q`, `--quiet` | Suppress progress output | off |
@@ -81,6 +87,15 @@ ABC-1234 | Add tracking scheduler
 ABC-1234 Add tracking scheduler
 ABC-1234: Fix null handling
 fix: ABC-1234 Handle timeout
+```
+
+Recurring maintenance tasks use one permanent lowercase ID per `me-*`
+repository. Remove the `me-` prefix and append `-update`; for example,
+`me-javal` maps to `javal-update`. Each validation run selects one iteration,
+whose commit subjects must start with its exact token:
+
+```text
+javal-update#3 | Improve task scoping
 ```
 
 File rules run on current `HEAD` lines attributed to matching task commits.
@@ -112,12 +127,17 @@ a valid finding:
 
 ```bash
 javal todo \
+  --check unused-imports \
   --file /absolute/path/File.java \
   --line 42 \
   --description "unused-imports: imported type is referenced by valid code"
 ```
 
-The command appends the report to the checkout-local, ignored `todo.md` file.
+The command writes a human note to ignored `todo.md` and an exact fingerprint to
+ignored `todo.jsonl`. A finding is accounted for only while its check ID,
+absolute path, line, and current source-line hash still match. Changing the line
+or receiving a different check makes it actionable again. Omitting `--check`
+keeps the legacy human note behavior but never clears validation.
 
 ## Development
 
@@ -133,5 +153,6 @@ To add a Java rule:
 3. Register it in `validator/java/rules/registry.py` with a description.
 4. Add a minimal, anonymized fixture and focused pytest coverage.
 
-Run `javal list-rules` for the authoritative list of checks. See
+Run `javal list-rules` for the authoritative inventory of Java, Liquibase, and
+Git checks. See
 [spec.md](spec.md) for applicability, scope, parsing, and testing contracts.
