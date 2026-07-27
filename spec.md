@@ -99,7 +99,7 @@ validator/
     ast/                 reusable syntax helpers
     rules/               rule contracts, registry, implementations
   liquibase/
-    analyzer.py          task-aware changeSet author validation
+    analyzer.py          task-aware changeSet author and immutability validation
     changeset.py         structural XML changeSet parser
 ```
 
@@ -229,6 +229,14 @@ author case- and diacritic-insensitively. A person with a hyphenated surname may
 use either surname component when the given name matches. An uncommitted changeSet
 uses local `git config user.name`. Editing only the body of a pre-existing changeSet
 does not revalidate its author.
+
+`liquibase-changeset-immutability` compares every task-touched changelog with its
+state immediately before the first selected task commit that touched that path.
+The final worktree must preserve every baseline changeSet's exact XML block and
+`(id, author)` identity. Body, formatting, attribute, identity, and removal
+changes fail validation. ChangeSets absent from the baseline belong to the current
+task and may be refined, renamed, or removed. A complete revert to the baseline
+passes validation.
 
 ## Reporting
 

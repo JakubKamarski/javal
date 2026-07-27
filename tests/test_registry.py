@@ -73,8 +73,9 @@ def test_all_rule_inventory_includes_non_java_analyzers_without_duplicates():
     check_ids = [meta.check_id for meta in metadata]
 
     assert len(check_ids) == len(set(check_ids))
-    assert check_ids[-3:] == [
+    assert check_ids[-4:] == [
         "liquibase-changeset-author",
+        "liquibase-changeset-immutability",
         "git-uncommitted-changes",
         "git-commit-no-courier-symbol",
     ]

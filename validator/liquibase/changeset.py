@@ -10,11 +10,13 @@ class ChangeSet:
     author: str
     start_line: int
     end_line: int
+    content: str
 
 
 def parse_changesets(source: str) -> list[ChangeSet]:
     changesets: list[ChangeSet] = []
     open_changesets: list[tuple[str, str, int]] = []
+    source_lines = source.splitlines(keepends=True)
     parser = expat.ParserCreate(namespace_separator="}")
 
     def local_name(name: str) -> str:
@@ -45,6 +47,7 @@ def parse_changesets(source: str) -> list[ChangeSet]:
                 author=author,
                 start_line=start_line,
                 end_line=parser.CurrentLineNumber,
+                content="".join(source_lines[start_line - 1 : parser.CurrentLineNumber]),
             )
         )
 

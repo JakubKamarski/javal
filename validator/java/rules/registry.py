@@ -81,6 +81,13 @@ NON_JAVA_RULES = (
         tree_scope="task_changed",
     ),
     RuleMeta(
+        check_id="liquibase-changeset-immutability",
+        category="liquibase",
+        description="Existing Liquibase changesets are immutable unless introduced by the current task",
+        scope="tree",
+        tree_scope="task_changed",
+    ),
+    RuleMeta(
         check_id="git-uncommitted-changes",
         category="git",
         description="Repository must not contain uncommitted changes",

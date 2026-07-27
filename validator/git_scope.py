@@ -264,8 +264,7 @@ def collect_task_changed_lines(
             if not is_scoped_source_path(relative_path):
                 continue
             absolute_path = str((repo / relative_path).resolve())
-            if Path(absolute_path).is_file():
-                commit_lines_by_sha[commit].setdefault(absolute_path, set())
+            commit_lines_by_sha[commit].setdefault(absolute_path, set())
 
     candidate_paths = sorted(
         {
