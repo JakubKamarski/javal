@@ -14,6 +14,10 @@ CONTEXT_PATH_YAML_PATTERN = re.compile(
     re.IGNORECASE,
 )
 COURIER_KEYWORD_PATTERN = re.compile(r"courier", re.IGNORECASE)
+COURIER_IDENTIFIER_PATTERN = re.compile(
+    r"(?:^|[/_-])courier[-_/]([A-Za-z0-9_-]+)(?:/|$)",
+    re.IGNORECASE,
+)
 
 
 def find_main_application_config(repo: Path) -> Path | None:
@@ -60,11 +64,22 @@ def context_path_indicates_courier_dedicated_repo(context_path: str) -> bool:
     return bool(COURIER_KEYWORD_PATTERN.search(context_path))
 
 
-def is_courier_dedicated_repo(repo: Path) -> bool:
+def courier_identifier_from_context_path(context_path: str) -> str | None:
+    match = COURIER_IDENTIFIER_PATTERN.search(context_path)
+    if match is None:
+        return None
+    return match.group(1)
+
+
+def find_courier_identifier(repo: Path) -> str | None:
     config_path = find_main_application_config(repo)
     if config_path is None:
-        return False
+        return None
     context_path = read_context_path(config_path)
     if not context_path:
-        return False
-    return context_path_indicates_courier_dedicated_repo(context_path)
+        return None
+    return courier_identifier_from_context_path(context_path)
+
+
+def is_courier_dedicated_repo(repo: Path) -> bool:
+    return find_courier_identifier(repo) is not None

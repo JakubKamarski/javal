@@ -4,7 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from validator.courier_repo import is_courier_dedicated_repo
+from validator.courier_repo import find_courier_identifier
 from validator.git_scope import TaskScope, commit_subject_matches_task_id
 from validator.report import Finding
 
@@ -14,15 +14,33 @@ CONVENTIONAL_COMMIT_PREFIX = re.compile(
     r"(?:\([^)]+\))?!?:\s*",
     re.IGNORECASE,
 )
-DEPLOYMENT_MARKER_PATTERN = re.compile(r"\b(?:FC|DC)\b")
-ALLOWED_LEADING_SEGMENTS = frozenset({"HOTFIX"})
 
 
 def strip_conventional_commit_prefix(subject: str) -> str:
     return CONVENTIONAL_COMMIT_PREFIX.sub("", subject.strip())
 
 
-def commit_subject_courier_symbol_segments(subject: str, task_id: str) -> tuple[str, ...]:
+def normalize_identifier(value: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", value.lower())
+
+
+def matches_courier_identifier(segment: str, courier_identifier: str) -> bool:
+    normalized_segment = normalize_identifier(segment)
+    normalized_courier = normalize_identifier(courier_identifier)
+    if not normalized_segment or not normalized_courier:
+        return False
+    normalized_courier_base = re.sub(r"\d+$", "", normalized_courier)
+    return normalized_segment.startswith(normalized_courier) or (
+        normalized_courier_base != normalized_courier
+        and normalized_segment.startswith(normalized_courier_base)
+    )
+
+
+def commit_subject_courier_symbol_segments(
+    subject: str,
+    task_id: str,
+    courier_identifier: str,
+) -> tuple[str, ...]:
     normalized = strip_conventional_commit_prefix(subject)
     if not commit_subject_matches_task_id(normalized, task_id):
         return ()
@@ -40,19 +58,25 @@ def commit_subject_courier_symbol_segments(subject: str, task_id: str) -> tuple[
     if not segments:
         return ()
 
-    if segments[0] in ALLOWED_LEADING_SEGMENTS:
-        segments = segments[1:]
-
-    if len(segments) <= 1:
-        return ()
-
-    return tuple(segments[:-1])
+    return tuple(
+        segment
+        for segment in segments
+        if matches_courier_identifier(segment, courier_identifier)
+    )
 
 
-def commit_subject_includes_courier_symbol_segment(subject: str, task_id: str) -> bool:
-    if DEPLOYMENT_MARKER_PATTERN.search(subject):
-        return False
-    return bool(commit_subject_courier_symbol_segments(subject, task_id))
+def commit_subject_includes_courier_symbol_segment(
+    subject: str,
+    task_id: str,
+    courier_identifier: str,
+) -> bool:
+    return bool(
+        commit_subject_courier_symbol_segments(
+            subject,
+            task_id,
+            courier_identifier,
+        )
+    )
 
 
 def get_commit_subject(repo: Path, commit: str) -> str:
@@ -84,8 +108,8 @@ def build_courier_symbol_commit_finding(
         line=1,
         details=subject,
         suggestion=(
-            f"Use `<TASK-ID> | <Capitalized message>` without MR-style courier segments "
-            f"({segment_list}). Deployment-config commits with FC/DC are exempt."
+            f"Use `<TASK-ID> | <message>` without repeating this repository's courier "
+            f"identifier as a standalone segment ({segment_list})."
         ),
     )
 
@@ -94,13 +118,18 @@ def build_task_commit_courier_symbol_findings(
     repo: Path,
     scope: TaskScope,
 ) -> list[Finding]:
-    if not is_courier_dedicated_repo(repo):
+    courier_identifier = find_courier_identifier(repo)
+    if courier_identifier is None:
         return []
 
     findings: list[Finding] = []
     for commit in scope.commits:
         subject = get_commit_subject(repo, commit)
-        segments = commit_subject_courier_symbol_segments(subject, scope.task_id)
+        segments = commit_subject_courier_symbol_segments(
+            subject,
+            scope.task_id,
+            courier_identifier,
+        )
         if not segments:
             continue
         findings.append(

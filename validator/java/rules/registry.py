@@ -97,7 +97,7 @@ NON_JAVA_RULES = (
     RuleMeta(
         check_id="git-commit-no-courier-symbol",
         category="git",
-        description="Task commits in courier repositories must include a valid courier symbol",
+        description="Task commits in courier repositories must not repeat the courier identifier",
         scope="tree",
         tree_scope="task_changed",
     ),

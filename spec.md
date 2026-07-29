@@ -64,12 +64,11 @@ scope, but they still make the repository dirty.
 
 `git-commit-no-courier-symbol` runs only in courier-dedicated repositories
 detected from `src/main/resources/application.properties` or `.yml`: when
-`server.servlet.context-path` contains the `courier` keyword. It inspects task
-commit subjects: after the task ID, only `<Capitalized message>` or
-`HOTFIX | <Capitalized message>` pipe segments are allowed. Extra MR-style
-courier or service segments fail validation. Deployment-config commits that
-include `FC` or `DC` are exempt. In other repositories, courier symbol segments
-in commit subjects are optional and not validated.
+`server.servlet.context-path` identifies a `courier-<identifier>` service. It
+allows arbitrary message text and pipe-separated segments after the task ID,
+but rejects standalone segments that repeat that repository's courier
+identifier. In other repositories, courier symbol segments in commit subjects
+are not validated.
 
 ## Architecture
 
