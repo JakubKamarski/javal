@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from validator.java.context import JavaFileContext
 
+_NON_CONTENT_NODE_TYPES = frozenset({"block_comment", "empty_statement", "line_comment"})
+
 
 def gwt_section_markers(context: JavaFileContext, method_node) -> list[tuple[str, int]]:
     block = next((child for child in method_node.children if child.type == "block"), None)
@@ -40,3 +42,17 @@ def parse_gwt_section_line_ranges(context: JavaFileContext, method_node) -> dict
 def line_in_range(line: int, line_range: tuple[int, int]) -> bool:
     start_line, end_line = line_range
     return start_line <= line <= end_line
+
+
+def gwt_content_nodes_in_range(method_node, line_range: tuple[int, int]) -> list:
+    block = next((child for child in method_node.children if child.type == "block"), None)
+    if block is None:
+        return []
+
+    return [
+        child
+        for child in block.children
+        if child.is_named
+        and child.type not in _NON_CONTENT_NODE_TYPES
+        and line_in_range(child.start_point[0] + 1, line_range)
+    ]

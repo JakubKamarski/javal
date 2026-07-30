@@ -50,7 +50,7 @@ RULE_DESCRIPTIONS: dict[str, str] = {
     "java-style-empty-collection-static-factory": "Empty List.of(), Map.of(), and Set.of() must use Collections.empty*()",
     "java-style-apache-commons-validate": "Direct if guards that only throw IllegalArgumentException must use Apache Commons Lang Validate",
     "java-testing-when-generic-variable": "// WHEN locals must be descriptive; warns on generic names like result",
-    "java-testing-gwt-sections": "Test methods must contain one // GIVEN, // WHEN, and // THEN section in order",
+    "java-testing-gwt-sections": "Test methods require non-empty // WHEN and // THEN sections; optional // GIVEN must be non-empty and own setup",
     "java-testing-test-method-prefix": "Test method name must start with the method invoked in // WHEN",
     "java-testing-test-owner-construction": "Tested instance must be initialized in // GIVEN or as a directly initialized final test-class field",
     "java-testing-duplicate-test-method": "Equivalent normal-response or exception-path tests with the same resolvable invocation signature must be parameterized",

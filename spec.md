@@ -194,8 +194,11 @@ initialized fields, argument transformations, validation, and any additional sta
 
 ### Test and collection conventions
 
-- Every `@Test` and `@ParameterizedTest` must contain exactly one ordered
-  `// GIVEN`, `// WHEN`, and `// THEN` section.
+- Every `@Test` and `@ParameterizedTest` must contain exactly one ordered,
+  non-empty `// WHEN` and `// THEN` section. `// GIVEN` is optional before
+  `// WHEN`, but must be non-empty when present; setup before `// WHEN` requires
+  it. Fill an empty `// GIVEN` from fixtures or inline action arguments when
+  possible, and remove it only when no setup or inputs exist.
 - A test name starts with the method invoked in `// WHEN`.
 - Equivalent normal-response and exception-path tests with the same resolvable
   invocation signature form one parameterized test; normal and exception outcomes

@@ -66,6 +66,7 @@ class TestAction:
     argument_count: int
     path: Literal["normal", "exception"]
     line: int
+    has_inline_arguments: bool = False
     is_constructor: bool = False
     receiver_name: str | None = None
     inline_receiver_method_name: str | None = None
@@ -192,6 +193,19 @@ def _argument_count(invocation) -> int:
     return sum(child.is_named for child in argument_list.children)
 
 
+def has_inline_arguments(invocation) -> bool:
+    argument_list = next(
+        (child for child in invocation.children if child.type == "argument_list"),
+        None,
+    )
+    if argument_list is None:
+        return False
+    return any(
+        child.is_named and child.type not in {"field_access", "identifier", "super", "this"}
+        for child in argument_list.children
+    )
+
+
 def _test_action(
     context: JavaFileContext,
     invocation,
@@ -206,6 +220,7 @@ def _test_action(
         argument_count=_argument_count(invocation),
         path=path,
         line=invocation.start_point[0] + 1,
+        has_inline_arguments=has_inline_arguments(invocation),
         receiver_name=_receiver_name(context, invocation),
         inline_receiver_method_name=_inline_receiver_method_name(context, invocation),
         receiver_type=receiver_type,
@@ -226,6 +241,7 @@ def _constructor_action(
         argument_count=_argument_count(creation),
         path=path,
         line=creation.start_point[0] + 1,
+        has_inline_arguments=has_inline_arguments(creation),
         is_constructor=True,
         receiver_type=created_type,
         argument_types=argument_types or (),
