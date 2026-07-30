@@ -33,6 +33,8 @@ class MethodVerbPrefixRule(JavaRule):
                 continue
             if method.is_record_accessor:
                 continue
+            if method.returns_predicate:
+                continue
             if method.name in STANDARD_METHOD_NAMES:
                 continue
             if starts_with_allowed_verb(method.name):

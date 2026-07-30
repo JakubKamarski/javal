@@ -34,7 +34,7 @@ from validator.java.rules.unused_import import UnusedImportRule
 
 RULE_DESCRIPTIONS: dict[str, str] = {
     "unused-imports": "Import declared but not referenced",
-    "java-naming-method-verb-prefix": "Method must start with an action verb (with framework, static-factory, and MethodSource exemptions)",
+    "java-naming-method-verb-prefix": "Method must start with an action verb (with framework, factory, Predicate-returning, and MethodSource exemptions)",
     "java-naming-method-map-style": "Map-style method names without verb prefix",
     "java-naming-method-bare-participle": "Bare participles/adjectives (distinct, sorted, empty, …)",
     "java-naming-variable-collection-type": "List / Set / Map embedded in variable name",

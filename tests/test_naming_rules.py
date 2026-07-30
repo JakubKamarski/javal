@@ -166,6 +166,58 @@ class ServicesErrorMessage {
     assert any("withUtility" in summary for summary in verb_prefix)
 
 
+def test_standard_predicate_return_type_does_not_require_verb_prefix(analyzer):
+    source = """
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
+class PredicateFactory {
+    static Predicate<String> messageMatches(Pattern pattern) {
+        return pattern.asPredicate();
+    }
+
+    static java.util.function.Predicate<String> statusMatches(String status) {
+        return status::equals;
+    }
+
+    static boolean messageMatching(String value) {
+        return true;
+    }
+
+    static Function<String, String> valueMapping() {
+        return value -> value;
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("PredicateFactory.java", source)
+    verb_prefix = [finding.summary for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+
+    assert not any("messageMatches" in summary for summary in verb_prefix)
+    assert not any("statusMatches" in summary for summary in verb_prefix)
+    assert any("messageMatching" in summary for summary in verb_prefix)
+    assert any("valueMapping" in summary for summary in verb_prefix)
+
+
+def test_custom_predicate_return_type_still_requires_verb_prefix(analyzer):
+    source = """
+class Predicate<T> {
+}
+
+class CustomPredicateFactory {
+    static Predicate<String> statusMatches(String status) {
+        return new Predicate<>();
+    }
+}
+"""
+
+    findings = analyzer.analyze_source("CustomPredicateFactory.java", source)
+    verb_prefix = [finding.summary for finding in findings if finding.check == "java-naming-method-verb-prefix"]
+
+    assert any("statusMatches" in summary for summary in verb_prefix)
+
+
 def test_method_source_provider_does_not_require_verb_prefix(analyzer):
     source = """
 import org.junit.jupiter.params.ParameterizedTest;

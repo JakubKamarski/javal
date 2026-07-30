@@ -53,13 +53,8 @@ def _enclosing_class_name(context: JavaFileContext, method_node) -> str | None:
     return context.text(identifier) if identifier is not None else None
 
 
-def _is_static_factory_method(context: JavaFileContext, method_node) -> bool:
-    if not node_has_modifier(context, method_node, "static"):
-        return False
-    class_name = _enclosing_class_name(context, method_node)
-    if class_name is None:
-        return False
-    return_type = next(
+def _method_return_type(context: JavaFileContext, method_node) -> str:
+    return next(
         (
             context.text(child)
             for child in method_node.children
@@ -67,7 +62,31 @@ def _is_static_factory_method(context: JavaFileContext, method_node) -> bool:
         ),
         "",
     )
+
+
+def _is_static_factory_method(context: JavaFileContext, method_node) -> bool:
+    if not node_has_modifier(context, method_node, "static"):
+        return False
+    class_name = _enclosing_class_name(context, method_node)
+    if class_name is None:
+        return False
+    return_type = _method_return_type(context, method_node)
     return return_type == class_name or return_type.startswith(f"{class_name}<")
+
+
+def _returns_standard_predicate(context: JavaFileContext, method_node) -> bool:
+    return_type = _method_return_type(context, method_node)
+    raw_return_type = return_type.split("<", maxsplit=1)[0]
+    if raw_return_type == "java.util.function.Predicate":
+        return True
+    if raw_return_type != "Predicate":
+        return False
+
+    return any(
+        context.text(import_node).strip()
+        in {"import java.util.function.Predicate;", "import java.util.function.*;"}
+        for import_node in context.walk("import_declaration")
+    )
 
 
 def method_source_provider_names(context: JavaFileContext) -> set[str]:
@@ -123,4 +142,5 @@ def iter_method_declarations(context: JavaFileContext):
                 "AfterAll",
             ),
             is_record_accessor=_is_record_accessor_method(context, node),
+            returns_predicate=_returns_standard_predicate(context, node),
         )

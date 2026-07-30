@@ -15,6 +15,7 @@ class MethodDeclaration:
     is_test: bool = False
     is_lifecycle: bool = False
     is_record_accessor: bool = False
+    returns_predicate: bool = False
 
 
 @dataclass(frozen=True)
