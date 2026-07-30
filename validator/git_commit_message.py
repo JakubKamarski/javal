@@ -20,23 +20,38 @@ def strip_conventional_commit_prefix(subject: str) -> str:
     return CONVENTIONAL_COMMIT_PREFIX.sub("", subject.strip())
 
 
-def normalize_identifier(value: str) -> str:
-    return re.sub(r"[^a-z0-9]", "", value.lower())
+def courier_identifier_aliases(courier_identifier: str) -> tuple[tuple[str, ...], ...]:
+    identifier_parts = tuple(re.findall(r"[A-Za-z0-9]+", courier_identifier))
+    if not identifier_parts:
+        return ()
+
+    aliases = [identifier_parts]
+    base_last_part = re.sub(r"\d+$", "", identifier_parts[-1])
+    if base_last_part and base_last_part != identifier_parts[-1]:
+        aliases.append((*identifier_parts[:-1], base_last_part))
+    return tuple(aliases)
 
 
-def matches_courier_identifier(segment: str, courier_identifier: str) -> bool:
-    normalized_segment = normalize_identifier(segment)
-    normalized_courier = normalize_identifier(courier_identifier)
-    if not normalized_segment or not normalized_courier:
-        return False
-    normalized_courier_base = re.sub(r"\d+$", "", normalized_courier)
-    return normalized_segment.startswith(normalized_courier) or (
-        normalized_courier_base != normalized_courier
-        and normalized_segment.startswith(normalized_courier_base)
+def courier_identifier_pattern(courier_identifier: str) -> re.Pattern[str] | None:
+    aliases = courier_identifier_aliases(courier_identifier)
+    if not aliases:
+        return None
+
+    variants = sorted(
+        (
+            r"[^A-Za-z0-9]+".join(re.escape(part) for part in alias)
+            for alias in aliases
+        ),
+        key=len,
+        reverse=True,
+    )
+    return re.compile(
+        rf"(?<![A-Za-z0-9])(?:{'|'.join(variants)})(?![A-Za-z0-9])",
+        re.IGNORECASE,
     )
 
 
-def commit_subject_courier_symbol_segments(
+def commit_subject_courier_identifier_occurrences(
     subject: str,
     task_id: str,
     courier_identifier: str,
@@ -51,27 +66,20 @@ def commit_subject_courier_symbol_segments(
         normalized,
         count=1,
     ).strip()
-    if not remainder.startswith("|"):
+    pattern = courier_identifier_pattern(courier_identifier)
+    if pattern is None:
         return ()
 
-    segments = [segment.strip() for segment in remainder.split("|") if segment.strip()]
-    if not segments:
-        return ()
-
-    return tuple(
-        segment
-        for segment in segments
-        if matches_courier_identifier(segment, courier_identifier)
-    )
+    return tuple(match.group(0) for match in pattern.finditer(remainder))
 
 
-def commit_subject_includes_courier_symbol_segment(
+def commit_subject_includes_courier_identifier(
     subject: str,
     task_id: str,
     courier_identifier: str,
 ) -> bool:
     return bool(
-        commit_subject_courier_symbol_segments(
+        commit_subject_courier_identifier_occurrences(
             subject,
             task_id,
             courier_identifier,
@@ -89,27 +97,25 @@ def get_commit_subject(repo: Path, commit: str) -> str:
     return result.stdout.strip()
 
 
-def build_courier_symbol_commit_finding(
+def build_courier_identifier_commit_finding(
     repo: Path,
     *,
     commit: str,
     subject: str,
-    segments: tuple[str, ...],
+    occurrences: tuple[str, ...],
 ) -> Finding:
     short_commit = commit[:7]
-    segment_list = ", ".join(f"'{segment}'" for segment in segments)
+    occurrence_list = ", ".join(f"'{occurrence}'" for occurrence in occurrences)
     return Finding(
         severity="warning",
         check=CHECK_ID,
-        summary=(
-            f"Commit {short_commit} includes courier symbol segment(s) in the subject"
-        ),
+        summary=f"Commit {short_commit} includes the courier identifier in the subject",
         file=str(repo.resolve()),
         line=1,
         details=subject,
         suggestion=(
             f"Use `<TASK-ID> | <message>` without repeating this repository's courier "
-            f"identifier as a standalone segment ({segment_list})."
+            f"identifier as a standalone token ({occurrence_list})."
         ),
     )
 
@@ -125,19 +131,19 @@ def build_task_commit_courier_symbol_findings(
     findings: list[Finding] = []
     for commit in scope.commits:
         subject = get_commit_subject(repo, commit)
-        segments = commit_subject_courier_symbol_segments(
+        occurrences = commit_subject_courier_identifier_occurrences(
             subject,
             scope.task_id,
             courier_identifier,
         )
-        if not segments:
+        if not occurrences:
             continue
         findings.append(
-            build_courier_symbol_commit_finding(
+            build_courier_identifier_commit_finding(
                 repo,
                 commit=commit,
                 subject=subject,
-                segments=segments,
+                occurrences=occurrences,
             )
         )
     return findings

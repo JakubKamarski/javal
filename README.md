@@ -90,8 +90,8 @@ fix: ABC-1234 Handle timeout
 ```
 
 Courier-dedicated repositories may use arbitrary message text and additional
-pipe-separated segments after the task ID. A standalone segment that repeats
-that repository's courier identifier is rejected.
+pipe-separated segments after the task ID. The repository's courier identifier
+is rejected as a standalone token anywhere in that message.
 
 Recurring maintenance tasks use one permanent lowercase ID per `me-*`
 repository. Remove the `me-` prefix and append `-update`; for example,

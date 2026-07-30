@@ -8,8 +8,8 @@ import pytest
 from validator.analyze import analyze_repo
 from validator.git_commit_message import (
     CHECK_ID,
-    commit_subject_courier_symbol_segments,
-    commit_subject_includes_courier_symbol_segment,
+    commit_subject_courier_identifier_occurrences,
+    commit_subject_includes_courier_identifier,
 )
 from validator.git_scope import build_task_scope
 
@@ -23,6 +23,9 @@ from validator.git_scope import build_task_scope
         ("ABC-1234 | Validation fixes", "ABC-1234", "sample", False),
         ("ABC-1234 Add without pipe", "ABC-1234", "sample", False),
         ("fix: ABC-1234 Handle timeout", "ABC-1234", "sample", False),
+        ("ABC-1234 | Add SAMPLE shipment status", "ABC-1234", "sample", True),
+        ("ABC-1234 Add sample shipment status", "ABC-1234", "sample", True),
+        ("fix: ABC-1234 Handle SAMPLE timeout", "ABC-1234", "sample", True),
         ("ABC-1234 | SAMPLE | Add shipment status", "ABC-1234", "sample", True),
         ("ABC-1234 | SAMPLE_COURIER | Add shipment status", "ABC-1234", "sample", True),
         (
@@ -38,17 +41,21 @@ from validator.git_scope import build_task_scope
             True,
         ),
         ("ABC-1234 | OTHER | Add shipment status", "ABC-1234", "sample", False),
+        ("ABC-1234 | Update SampleClient", "ABC-1234", "sample", False),
         ("ABC-1234 | GENERIC | Add shipment status", "ABC-1234", "sample2", False),
         ("ABC-1234 | SAMPLE | Add shipment status", "ABC-1234", "sample2", True),
+        ("ABC-1234 | Add SAMPLE2 status", "ABC-1234", "sample2", True),
+        ("ABC-1234 | Add DEMO_PUSH status", "ABC-1234", "demo-push", True),
+        ("ABC-1234 | Add DEMO status", "ABC-1234", "demo-push", False),
     ],
 )
-def test_commit_subject_includes_courier_symbol_segment(
+def test_commit_subject_includes_courier_identifier(
     subject,
     task_id,
     courier_identifier,
     expected,
 ):
-    assert commit_subject_includes_courier_symbol_segment(
+    assert commit_subject_includes_courier_identifier(
         subject,
         task_id,
         courier_identifier,
@@ -61,21 +68,25 @@ def test_commit_subject_includes_courier_symbol_segment(
         ("ABC-1234 | TRACKING | Add feature", "ABC-1234", "sample", ()),
         ("ABC-1234 | SAMPLE | Add feature", "ABC-1234", "sample", ("SAMPLE",)),
         (
-            "ABC-1234 | SAMPLE | sample-module | Add feature",
+            "ABC-1234 | Add sample-module for SAMPLE",
             "ABC-1234",
             "sample",
-            ("SAMPLE", "sample-module"),
+            ("sample", "SAMPLE"),
         ),
+        ("ABC-1234 | Update SampleClient", "ABC-1234", "sample", ()),
+        ("ABC-1234 | Add SAMPLE2 mapping", "ABC-1234", "sample2", ("SAMPLE2",)),
+        ("ABC-1234 | Add SAMPLE mapping", "ABC-1234", "sample2", ("SAMPLE",)),
+        ("ABC-1234 | Add demo_push mapping", "ABC-1234", "demo-push", ("demo_push",)),
         ("ABC-1234 | HOTFIX | Add feature", "ABC-1234", "sample", ()),
     ],
 )
-def test_commit_subject_courier_symbol_segments(
+def test_commit_subject_courier_identifier_occurrences(
     subject,
     task_id,
     courier_identifier,
     expected,
 ):
-    assert commit_subject_courier_symbol_segments(
+    assert commit_subject_courier_identifier_occurrences(
         subject,
         task_id,
         courier_identifier,
@@ -95,7 +106,7 @@ def _git(repo: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
 
 
-def test_analyze_repo_flags_task_commit_with_courier_symbol_segment(tmp_path):
+def test_analyze_repo_flags_task_commit_with_courier_identifier_in_message(tmp_path):
     task_id = "ABC-9001"
     repo = tmp_path / "hermes"
     repo.mkdir()
@@ -114,14 +125,14 @@ def test_analyze_repo_flags_task_commit_with_courier_symbol_segment(tmp_path):
         repo,
         "commit",
         "-m",
-        f"{task_id} | HERMES | Add shipment status",
+        f"{task_id} | Add HERMES shipment status",
     )
 
     report = analyze_repo(repo, task_id=task_id)
     findings = [finding for finding in report.invalid_findings if finding.check == CHECK_ID]
 
     assert len(findings) == 1
-    assert "courier symbol segment" in findings[0].summary.lower()
+    assert "courier identifier" in findings[0].summary.lower()
 
 
 def test_analyze_repo_skips_courier_symbol_check_outside_courier_dedicated_repo(tmp_path):
@@ -151,7 +162,7 @@ def test_analyze_repo_skips_courier_symbol_check_outside_courier_dedicated_repo(
     assert findings == []
 
 
-def test_analyze_repo_accepts_task_commit_without_courier_symbol_segment(tmp_path):
+def test_analyze_repo_accepts_task_commit_without_courier_identifier_token(tmp_path):
     task_id = "ABC-9002"
     repo = tmp_path / "sample-courier"
     repo.mkdir()
@@ -174,7 +185,7 @@ def test_analyze_repo_accepts_task_commit_without_courier_symbol_segment(tmp_pat
     assert findings == []
 
 
-def test_build_task_scope_does_not_flag_commits_without_courier_segments(tmp_path):
+def test_build_task_scope_does_not_flag_commits_without_courier_identifier(tmp_path):
     task_id = "ABC-9003"
     repo = tmp_path / "sample-courier"
     repo.mkdir()
